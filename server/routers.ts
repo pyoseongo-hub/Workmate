@@ -44,6 +44,39 @@ export const appRouter = router({
       if (!db) return [];
       return db.select({ id: workspaceMembers.id, displayName: workspaceMembers.displayName, memberRole: workspaceMembers.memberRole }).from(workspaceMembers).where(eq(workspaceMembers.workspaceId, input.workspaceId));
     }),
+    add: ownerOnly.input(z.object({ workspaceId: z.number().int().positive(), displayName: z.string().min(1).max(80) })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const tempUser = await db.insert(users).values({ openId: `invite_${input.workspaceId}_${inviteCode}`, name: input.displayName, role: "user" }).$returningId();
+      const tempUserId = tempUser[0]?.id;
+      if (!tempUserId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const result = await db.insert(workspaceMembers).values({ workspaceId: input.workspaceId, userId: tempUserId, memberRole: "staff", displayName: input.displayName }).$returningId();
+      await recordAudit({ workspaceId: input.workspaceId, actorId: ctx.user.id, entityType: "member", entityId: result[0]?.id || 0, action: "create", afterValue: JSON.stringify({ ...input, inviteCode }) });
+      return { id: result[0]?.id, displayName: input.displayName, memberRole: "staff", inviteCode };
+    }),
+    update: ownerOnly.input(z.object({ workspaceId: z.number().int().positive(), memberId: z.number().int().positive(), displayName: z.string().min(1).max(80).optional() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const member = await db.select().from(workspaceMembers).where(and(eq(workspaceMembers.id, input.memberId), eq(workspaceMembers.workspaceId, input.workspaceId))).limit(1);
+      if (!member[0]) throw new TRPCError({ code: "NOT_FOUND", message: "직원을 찾을 수 없습니다." });
+      if (member[0].memberRole === "owner") throw new TRPCError({ code: "FORBIDDEN", message: "사장님 정보는 수정할 수 없습니다." });
+      const updates: { displayName?: string } = {};
+      if (input.displayName) updates.displayName = input.displayName;
+      await db.update(workspaceMembers).set(updates).where(eq(workspaceMembers.id, input.memberId));
+      await recordAudit({ workspaceId: input.workspaceId, actorId: ctx.user.id, entityType: "member", entityId: input.memberId, action: "update", beforeValue: JSON.stringify(member[0]), afterValue: JSON.stringify({ ...member[0], ...updates }) });
+      return { success: true };
+    }),
+    delete: ownerOnly.input(z.object({ workspaceId: z.number().int().positive(), memberId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      const member = await db.select().from(workspaceMembers).where(and(eq(workspaceMembers.id, input.memberId), eq(workspaceMembers.workspaceId, input.workspaceId))).limit(1);
+      if (!member[0]) throw new TRPCError({ code: "NOT_FOUND", message: "직원을 찾을 수 없습니다." });
+      if (member[0].memberRole === "owner") throw new TRPCError({ code: "FORBIDDEN", message: "사장님은 삭제할 수 없습니다." });
+      await db.delete(workspaceMembers).where(eq(workspaceMembers.id, input.memberId));
+      await recordAudit({ workspaceId: input.workspaceId, actorId: ctx.user.id, entityType: "member", entityId: input.memberId, action: "delete", beforeValue: JSON.stringify(member[0]) });
+      return { success: true };
+    }),
   }),
   schedules: router({
     list: protectedProcedure.input(workspaceInput.extend({ year: z.number().int().optional(), month: z.number().int().min(1).max(12).optional() })).query(async ({ input }) => {

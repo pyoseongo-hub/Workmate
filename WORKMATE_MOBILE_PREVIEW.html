@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkMate - 모바일</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: white;
+            border: 12px solid #000;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .screen {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:active {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .content {
+            flex: 1;
+            padding: 16px;
+            padding-bottom: 70px;
+            overflow-y: auto;
+        }
+
+        .greeting {
+            margin-bottom: 20px;
+        }
+
+        .greeting-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .greeting-sub {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .stat-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 16px 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .staff-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .staff-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #0f172a;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .staff-tag:active {
+            transform: scale(0.95);
+        }
+
+        .staff-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .calendar-mini {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .cal-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .cal-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .cal-btn:active {
+            background: #e2e8f0;
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 4px 0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .cal-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            background: #f8fafc;
+            border-radius: 6px;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cal-day.active {
+            background: white;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+
+        .cal-day.today {
+            background: #0f172a;
+            color: white;
+            font-weight: 700;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #0f172a;
+        }
+
+        .card-content {
+            font-size: 12px;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0f172a;
+            color: white;
+        }
+
+        .btn-primary:active {
+            opacity: 0.8;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .btn-secondary:active {
+            background: #e2e8f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: #0f172a;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: 6px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="status-bar">
+            <span>09:41</span>
+            <span>●●●●●</span>
+        </div>
+
+        <div class="header">
+            <div class="header-title">WorkMate</div>
+            <div class="header-icons">
+                <button class="icon-btn" style="position: relative;">
+                    🔔
+                    <div class="notification-dot"></div>
+                </button>
+                <button class="icon-btn">👤</button>
+            </div>
+        </div>
+
+        <div class="screen">
+            <div class="content">
+                <!-- 인사말 -->
+                <div class="greeting">
+                    <div class="greeting-title">안녕, 서연</div>
+                    <div class="greeting-sub">2026년 8월 29일 (금)</div>
+                </div>
+
+                <!-- 주요 통계 -->
+                <div class="stat-row">
+                    <div class="stat-card">
+                        <div class="stat-value">09:00</div>
+                        <div class="stat-label">오늘 근무</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">1</div>
+                        <div class="stat-label">확인 필요</div>
+                    </div>
+                </div>
+
+                <!-- 직원 태그 -->
+                <div class="section-title">오늘 근무</div>
+                <div class="staff-tags">
+                    <div class="staff-tag">
+                        <div class="staff-indicator" style="background: #3b82f6;"></div>
+                        서연
+                    </div>
+                    <div class="staff-tag">
+                        <div class="staff-indicator" style="background: #8b5cf6;"></div>
+                        민수
+                    </div>
+                    <div class="staff-tag">
+                        <div class="staff-indicator" style="background: #f59e0b;"></div>
+                        수빈
+                    </div>
+                </div>
+
+                <!-- 미니 캘린더 -->
+                <div class="section-title">근무표</div>
+                <div class="calendar-mini">
+                    <div class="calendar-header">
+                        <span>2026년 8월</span>
+                        <div class="cal-nav">
+                            <button class="cal-btn">◀</button>
+                            <button class="cal-btn">▶</button>
+                        </div>
+                    </div>
+                    <div class="weekdays">
+                        <div class="weekday">일</div>
+                        <div class="weekday">월</div>
+                        <div class="weekday">화</div>
+                        <div class="weekday">수</div>
+                        <div class="weekday">목</div>
+                        <div class="weekday">금</div>
+                        <div class="weekday">토</div>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="cal-day">27</div>
+                        <div class="cal-day">28</div>
+                        <div class="cal-day">29</div>
+                        <div class="cal-day">30</div>
+                        <div class="cal-day">31</div>
+                        <div class="cal-day active">1</div>
+                        <div class="cal-day active">2</div>
+                        <div class="cal-day active">3</div>
+                        <div class="cal-day active">4</div>
+                        <div class="cal-day active">5</div>
+                        <div class="cal-day active">6</div>
+                        <div class="cal-day active">7</div>
+                        <div class="cal-day active">8</div>
+                        <div class="cal-day active">9</div>
+                        <div class="cal-day active">10</div>
+                        <div class="cal-day active">11</div>
+                        <div class="cal-day active">12</div>
+                        <div class="cal-day today">13</div>
+                        <div class="cal-day active">14</div>
+                        <div class="cal-day active">15</div>
+                        <div class="cal-day active">16</div>
+                        <div class="cal-day active">17</div>
+                        <div class="cal-day active">18</div>
+                        <div class="cal-day active">19</div>
+                        <div class="cal-day active">20</div>
+                        <div class="cal-day active">21</div>
+                        <div class="cal-day active">22</div>
+                        <div class="cal-day active">23</div>
+                        <div class="cal-day active">24</div>
+                        <div class="cal-day active">25</div>
+                        <div class="cal-day active">26</div>
+                        <div class="cal-day active">27</div>
+                        <div class="cal-day active">28</div>
+                        <div class="cal-day active">29</div>
+                        <div class="cal-day active">30</div>
+                        <div class="cal-day active">31</div>
+                    </div>
+                </div>
+
+                <!-- 교대 요청 대기 -->
+                <div class="section-title">확인 대기</div>
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 16px;">🔄</span>
+                        <span>민수의 교대 요청</span>
+                    </div>
+                    <div class="card-content">
+                        <strong>날짜:</strong> 8월 15일 (목)<br>
+                        <strong>시간:</strong> 12:00–21:00<br>
+                        <strong>사유:</strong> 개인 사정
+                    </div>
+                    <div class="action-row">
+                        <button class="btn-small btn-primary">승인</button>
+                        <button class="btn-small btn-secondary">거절</button>
+                    </div>
+                </div>
+
+                <!-- 근무일지 -->
+                <div class="section-title">오늘의 근무일지</div>
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 16px;">📝</span>
+                        <span>8월 29일 근무 기록</span>
+                    </div>
+                    <div class="card-content">
+                        <div><strong>예정 시간:</strong> 09:00–18:00</div>
+                        <div style="margin-top: 8px;"><strong>실제 기록:</strong></div>
+                        <div style="margin-top: 4px;">
+                            🕘 출근: <input type="time" style="width: 80px; padding: 4px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        </div>
+                        <div style="margin-top: 4px;">
+                            🕘 퇴근: <input type="time" style="width: 80px; padding: 4px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <div class="action-row">
+                        <button class="btn-small btn-primary">저장</button>
+                    </div>
+                </div>
+
+                <!-- 특이사항 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span style="font-size: 16px;">💬</span>
+                        <span>특이사항</span>
+                    </div>
+                    <textarea style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; font-family: inherit; resize: none; color: #475569;" placeholder="오늘 특이사항이 있으면 적어주세요"></textarea>
+                    <div class="action-row" style="margin-top: 8px;">
+                        <button class="btn-small btn-primary">기록</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 바닥 네비게이션 -->
+            <div class="bottom-nav">
+                <div class="nav-item active">
+                    <span class="nav-icon">🏠</span>
+                    <span>대시보드</span>
+                </div>
+                <div class="nav-item">
+                    <span class="nav-icon">📅</span>
+                    <span>근무표</span>
+                </div>
+                <div class="nav-item">
+                    <span class="nav-icon">📝</span>
+                    <span>일지</span>
+                </div>
+                <div class="nav-item">
+                    <span class="nav-icon">🔄</span>
+                    <span>교대</span>
+                </div>
+                <div class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>설정</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
