@@ -4,7 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNull, like } from "drizzle-orm";
+import { and, desc, eq, isNull, like, gte, lte } from "drizzle-orm";
 import { getDb, getPendingSwaps, getWorkspaceForOwner, listNotifications, recordAudit } from "./db";
 import { notifications, recurringSchedules, shiftSwaps, users, workLogs, workShifts, workspaceMembers, workspaces } from "../drizzle/schema";
 
@@ -123,15 +123,19 @@ export const appRouter = router({
     }),
   }),
   workLogs: router({
-    list: protectedProcedure.input(workspaceInput).query(async ({ input }) => {
+    list: protectedProcedure.input(workspaceInput.extend({ year: z.number().int().optional(), month: z.number().int().min(1).max(12).optional() })).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(workLogs).where(eq(workLogs.workspaceId, input.workspaceId)).orderBy(desc(workLogs.workDate));
+      const monthPrefix = input.year && input.month ? `${input.year}-${String(input.month).padStart(2, "0")}%` : undefined;
+      return db.select().from(workLogs).where(monthPrefix ? and(eq(workLogs.workspaceId, input.workspaceId), like(workLogs.workDate, monthPrefix)) : eq(workLogs.workspaceId, input.workspaceId)).orderBy(desc(workLogs.workDate));
     }),
     create: protectedProcedure.input(z.object({ workspaceId: z.number().int().positive(), shiftId: z.number().int().positive(), memberId: z.number().int().positive(), workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), clockInAt: z.date().nullable().optional(), clockOutAt: z.date().nullable().optional(), breakMinutes: z.number().int().min(0).max(240).default(30), note: z.string().max(500).optional() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      const result = await db.insert(workLogs).values({ ...input, updatedBy: ctx.user.id }).$returningId();
+      const today = new Date().toISOString().slice(0, 10);
+      const isPast = input.workDate < today;
+      const lockedAt = isPast ? new Date() : null;
+      const result = await db.insert(workLogs).values({ ...input, updatedBy: ctx.user.id, lockedAt }).$returningId();
       const id = result[0]?.id;
       if (id) await recordAudit({ workspaceId: input.workspaceId, actorId: ctx.user.id, entityType: "workLog", entityId: id, action: "create", afterValue: JSON.stringify(input) });
       return { id };
