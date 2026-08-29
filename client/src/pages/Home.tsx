@@ -189,7 +189,7 @@ export default function Home() {
 
 type DialogProps = { onClose: () => void; onSaved: () => void };
 type ScheduleDialogProps = DialogProps & { workspaceId?: number; year: number; month: number; members: Array<{ id: number; displayName: string; memberRole: "owner" | "staff" }> };
-type LogDialogProps = DialogProps & { workspaceId?: number; shift?: { id: number; memberId: number; workDate: string } };
+type LogDialogProps = DialogProps & { workspaceId?: number; shift?: { id: number; memberId: number; workDate: string; startTime?: string; endTime?: string } };
 
 function DialogShell({ title, description, children, onClose }: { title: string; description: string; children: React.ReactNode; onClose: () => void }) {
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/30 p-0 backdrop-blur-sm sm:items-center sm:p-4"><div className="w-full max-w-md rounded-t-[28px] bg-white p-6 shadow-2xl sm:rounded-[28px]"><div className="flex items-start justify-between"><div><h2 className="text-lg font-extrabold tracking-tight text-slate-900">{title}</h2><p className="mt-1 text-xs leading-5 text-slate-400">{description}</p></div><button onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100" aria-label="닫기"><X className="h-4 w-4" /></button></div>{children}</div></div>;
@@ -228,11 +228,34 @@ function ScheduleDialog({ onClose, onSaved, workspaceId, year, month, members }:
 function LogDialog({ onClose, onSaved, workspaceId, shift }: LogDialogProps) {
   const logMutation = trpc.workLogs.create.useMutation();
   const [note, setNote] = useState("");
+  const [clockIn, setClockIn] = useState("09:00");
+  const [clockOut, setClockOut] = useState("18:00");
+  const [error, setError] = useState("");
+
   const saveLog = async () => {
-    if (workspaceId && shift) {
-      await logMutation.mutateAsync({ workspaceId, shiftId: shift.id, memberId: shift.memberId, workDate: shift.workDate, clockInAt: new Date(), clockOutAt: new Date(), note });
+    setError("");
+    if (!workspaceId || !shift) {
+      setError("근무 정보를 찾을 수 없습니다.");
+      return;
     }
-    onSaved();
+    try {
+      const today = new Date();
+      const clockInDate = new Date(shift.workDate + "T" + clockIn + ":00");
+      const clockOutDate = new Date(shift.workDate + "T" + clockOut + ":00");
+      await logMutation.mutateAsync({
+        workspaceId,
+        shiftId: shift.id,
+        memberId: shift.memberId,
+        workDate: shift.workDate,
+        clockInAt: clockInDate,
+        clockOutAt: clockOutDate,
+        note
+      });
+      onSaved();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "저장 중 오류가 발생했습니다.");
+    }
   };
-  return <DialogShell title="오늘의 근무일지" description="예정 근무와 실제 출퇴근을 확인하고 특이사항을 남겨주세요." onClose={onClose}><div className="mt-6 space-y-4"><div className="grid grid-cols-2 gap-3"><div className="rounded-2xl bg-slate-50 p-4"><p className="text-[11px] font-semibold text-slate-400">예정 근무</p><p className="mt-2 text-lg font-extrabold text-slate-900">09:00–18:00</p></div><div className="rounded-2xl bg-emerald-50 p-4"><p className="text-[11px] font-semibold text-emerald-600">실제 기록</p><p className="mt-2 text-lg font-extrabold text-emerald-800">09:03–18:02</p></div></div><label className="block"><span className="text-xs font-bold text-slate-600">특이사항</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="대체 근무, 지각 사유, 매장 이슈 등을 적어주세요." className="mt-2 min-h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500" /></label><div className="flex gap-2 pt-2"><Button variant="outline" onClick={onClose} className="h-11 flex-1 rounded-xl text-sm font-bold">취소</Button><Button onClick={saveLog} disabled={logMutation.isPending} className="h-11 flex-1 rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800">{logMutation.isPending ? '저장 중...' : '일지 저장'}</Button></div></div></DialogShell>;
+
+  return <DialogShell title="오늘의 근무일지" description="예정 근무와 실제 출퇴근을 확인하고 특이사항을 남겨주세요." onClose={onClose}><div className="mt-6 space-y-4"><div className="grid grid-cols-2 gap-3"><div className="rounded-2xl bg-slate-50 p-4"><p className="text-[11px] font-semibold text-slate-400">예정 근무</p><p className="mt-2 text-lg font-extrabold text-slate-900">{shift?.startTime}–{shift?.endTime}</p></div><div className="rounded-2xl bg-emerald-50 p-4"><p className="text-[11px] font-semibold text-emerald-600">실제 기록</p><div className="mt-2 flex gap-2"><input value={clockIn} onChange={(e) => setClockIn(e.target.value)} type="time" className="h-8 rounded-lg border border-emerald-200 px-2 text-sm font-bold text-emerald-800" />–<input value={clockOut} onChange={(e) => setClockOut(e.target.value)} type="time" className="h-8 rounded-lg border border-emerald-200 px-2 text-sm font-bold text-emerald-800" /></div></div></div><label className="block"><span className="text-xs font-bold text-slate-600">특이사항</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="대체 근무, 지각 사유, 매장 이슈 등을 적어주세요." className="mt-2 min-h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500" /></label>{error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold leading-5 text-rose-600">{error}</p>}<div className="flex gap-2 pt-2"><Button variant="outline" onClick={onClose} className="h-11 flex-1 rounded-xl text-sm font-bold">취소</Button><Button onClick={saveLog} disabled={logMutation.isPending} className="h-11 flex-1 rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800">{logMutation.isPending ? '저장 중...' : '일지 저장'}</Button></div></div></DialogShell>;
 }
