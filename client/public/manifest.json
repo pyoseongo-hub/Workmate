@@ -1,0 +1,18 @@
+{
+  "name": "WorkMate · 우리 매장",
+  "short_name": "WorkMate",
+  "description": "소규모 매장을 위한 근무표·교대·근무일지 관리",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#0f172a",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/manus-storage/workmate-icon_86efa6af.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
