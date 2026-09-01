@@ -66,8 +66,8 @@ export default function Swaps() {
         )
       }
     >
-      <Card className="overflow-hidden rounded-3xl border-0 shadow-sm shadow-slate-200/60">
-        <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-7">
+      <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
+        <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">
           <CardTitle className="text-lg font-extrabold tracking-tight">
             {isOwnerMode ? "승인 대기 목록" : "내 교대 요청"}
           </CardTitle>
@@ -76,7 +76,7 @@ export default function Swaps() {
           </p>
         </CardHeader>
 
-        <CardContent className="p-5 sm:p-7">
+        <CardContent className="p-4 sm:p-7">
           {visible.length === 0 ? (
             <p className="py-10 text-center text-xs text-slate-400">
               {isOwnerMode

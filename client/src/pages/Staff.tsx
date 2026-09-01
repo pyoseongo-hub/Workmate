@@ -26,8 +26,8 @@ export default function Staff() {
   if (!isOwnerMode) {
     return (
       <AppLayout title="직원 관리">
-        <Card className="rounded-3xl border-0 shadow-sm shadow-slate-200/60">
-          <CardContent className="flex flex-col items-center gap-3 p-12 text-center">
+        <Card className="rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
+          <CardContent className="flex flex-col items-center gap-3 p-8 text-center sm:p-12">
             <ShieldAlert className="h-8 w-8 text-amber-500" />
             <p className="text-sm font-bold text-slate-700">사장님 전용 화면입니다.</p>
             <p className="text-xs text-slate-400">
@@ -52,14 +52,14 @@ export default function Staff() {
         </Button>
       }
     >
-      <Card className="overflow-hidden rounded-3xl border-0 shadow-sm shadow-slate-200/60">
-        <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-7">
+      <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
+        <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">
           <CardTitle className="text-lg font-extrabold tracking-tight">
             직원 목록 {members.length > 0 && `(${members.length}명)`}
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="p-5 sm:p-7">
+        <CardContent className="p-4 sm:p-7">
           {members.length === 0 ? (
             <p className="py-10 text-center text-xs text-slate-400">
               등록된 직원이 없습니다.

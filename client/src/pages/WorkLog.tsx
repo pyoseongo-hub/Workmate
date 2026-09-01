@@ -76,8 +76,8 @@ export default function WorkLog() {
         </p>
       </div>
 
-      <Card className="overflow-hidden rounded-3xl border-0 shadow-sm shadow-slate-200/60">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
+      <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">
           <CardTitle className="text-lg font-extrabold tracking-tight">
             {year}년 {month}월 기록
           </CardTitle>
@@ -104,7 +104,7 @@ export default function WorkLog() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-5 sm:p-7">
+        <CardContent className="p-4 sm:p-7">
           {logs.length === 0 ? (
             <p className="py-10 text-center text-xs text-slate-400">
               이 달에는 아직 기록이 없습니다. (2단계에서 서버와 연결할 예정입니다)

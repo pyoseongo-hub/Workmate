@@ -43,8 +43,8 @@ export default function Dashboard() {
         />
       </div>
 
-      <Card className="rounded-3xl border-0 shadow-sm shadow-slate-200/60">
-        <CardContent className="p-8 text-center">
+      <Card className="rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
+        <CardContent className="p-6 text-center sm:p-8">
           <p className="text-sm font-semibold text-slate-500">
             여기에 오늘의 근무 요약이 들어갑니다.
           </p>
@@ -78,14 +78,18 @@ function SummaryCard({
   }[tone];
 
   return (
-    <Card className="rounded-2xl border-0 shadow-sm shadow-slate-200/60">
-      <CardContent className="p-5">
+    // py-0 : Card 부품에 이미 있는 위아래 여백을 끕니다.
+    //        끄지 않으면 아래 p-4 와 겹쳐서 폰에서 카드가 지나치게 커집니다.
+    <Card className="rounded-2xl border-0 py-0 shadow-sm shadow-slate-200/60">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-400">{label}</p>
           <div className={`rounded-xl p-2 ${toneClass}`}>{icon}</div>
         </div>
-        <p className="mt-3 text-xl font-extrabold tracking-tight">{value}</p>
-        <p className="mt-1 text-xs text-slate-400">{hint}</p>
+        <p className="mt-2 text-lg font-extrabold tracking-tight sm:mt-3 sm:text-xl">
+          {value}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-400 sm:mt-1">{hint}</p>
       </CardContent>
     </Card>
   );

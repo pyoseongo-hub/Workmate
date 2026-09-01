@@ -61,8 +61,8 @@ export default function Schedule() {
         )
       }
     >
-      <Card className="overflow-hidden rounded-3xl border-0 shadow-sm shadow-slate-200/60">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
+      <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">
           <div>
             <CardTitle className="text-lg font-extrabold tracking-tight">
               {year}년 {month}월
@@ -94,7 +94,7 @@ export default function Schedule() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-7">
+        <CardContent className="p-3 sm:p-7">
           <CalendarGrid year={year} month={month} shifts={shifts} />
         </CardContent>
       </Card>
@@ -132,10 +132,12 @@ function CalendarGrid({
 
   const todayStr = new Date().toDateString();
 
+  // 폰에서는 7칸이 화면 안에 딱 들어가야 합니다(min-w-full).
+  // 예전 코드는 min-w-[680px] 로 고정해서, 폰에서 수·목·금·토가 잘렸습니다.
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[680px]">
-        <div className="grid grid-cols-7 border-b border-slate-100 pb-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+      <div className="min-w-full sm:min-w-[680px]">
+        <div className="grid grid-cols-7 border-b border-slate-100 pb-2 text-center text-[10px] font-semibold text-slate-400 sm:text-[11px] sm:uppercase sm:tracking-[0.16em]">
           {WEEKDAYS.map((day) => (
             <span key={day}>{day}</span>
           ))}
@@ -144,7 +146,12 @@ function CalendarGrid({
         <div className="mt-2 grid grid-cols-7 gap-px overflow-hidden rounded-2xl bg-slate-100">
           {cells.map((day, index) => {
             if (day === null) {
-              return <div key={`empty-${index}`} className="min-h-[108px] bg-slate-50/80" />;
+              return (
+                <div
+                  key={`empty-${index}`}
+                  className="min-h-[62px] bg-slate-50/80 sm:min-h-[108px]"
+                />
+              );
             }
 
             const isToday = new Date(year, month - 1, day).toDateString() === todayStr;
@@ -153,10 +160,10 @@ function CalendarGrid({
             return (
               <div
                 key={day}
-                className="min-h-[108px] bg-white p-2.5 transition-colors hover:bg-slate-50"
+                className="min-h-[62px] bg-white p-1 transition-colors hover:bg-slate-50 sm:min-h-[108px] sm:p-2.5"
               >
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                  className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold sm:h-6 sm:w-6 sm:text-xs ${
                     isToday ? "bg-slate-900 text-white" : "text-slate-600"
                   }`}
                 >
@@ -164,9 +171,9 @@ function CalendarGrid({
                 </span>
 
                 {shift && (
-                  <div className="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-2 py-2 text-[11px] leading-tight text-blue-800">
-                    <div className="font-bold">{shift.person}</div>
-                    <div className="mt-1 opacity-75">{shift.time}</div>
+                  <div className="mt-1 rounded-md border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] leading-tight text-blue-800 sm:mt-2 sm:rounded-xl sm:px-2 sm:py-2 sm:text-[11px]">
+                    <div className="truncate font-bold">{shift.person}</div>
+                    <div className="mt-0.5 truncate opacity-75 sm:mt-1">{shift.time}</div>
                   </div>
                 )}
               </div>

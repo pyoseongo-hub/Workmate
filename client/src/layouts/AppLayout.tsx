@@ -168,15 +168,17 @@ export default function AppLayout({ title, description, action, children }: Prop
         </aside>
 
         {/* ───────────────── 본문 ───────────────── */}
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-7 lg:px-10 lg:py-9">
-          <div className="mx-auto max-w-[1120px] space-y-6">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <main className="min-w-0 flex-1 px-3 py-5 sm:px-7 sm:py-6 lg:px-10 lg:py-9">
+          <div className="mx-auto max-w-[1120px] space-y-4 sm:space-y-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end sm:gap-4">
               <div>
-                <h1 className="text-[30px] font-extrabold tracking-[-0.06em] sm:text-[38px]">
+                <h1 className="text-[24px] font-extrabold tracking-[-0.05em] sm:text-[32px] lg:text-[38px]">
                   {title}
                 </h1>
                 {description && (
-                  <p className="mt-2 text-sm text-slate-500">{description}</p>
+                  <p className="mt-1.5 text-[13px] text-slate-500 sm:mt-2 sm:text-sm">
+                    {description}
+                  </p>
                 )}
               </div>
               {action}
