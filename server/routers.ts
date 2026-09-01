@@ -1,3 +1,15 @@
+/**
+ * ⚠️ 지금 앱이 쓰는 서버가 아닙니다.
+ *
+ * 실제로 도는 서버는 server/app.ts 입니다 (package.json 의 build·start 참고).
+ * 이 파일은 처음 뼈대를 만들 때 딸려 온 옛 코드로, 화면 어디에도 이어져 있지 않습니다.
+ *
+ * ⏱️ 아래 shifts.add · recurringAdd · logs.create 에 breakMinutes 가 남아 있고
+ *    drizzle/schema.ts 에도 기본값 30분 칸이 있습니다. 옛 설계의 흔적입니다.
+ *    지금 방침은 "근무시간만 적고 휴게·급여는 사장님이 판단한다" 이므로,
+ *    이 코드를 되살려 화면에 이어 붙이는 일이 있다면 그 칸부터 걷어내야 합니다.
+ */
+
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
