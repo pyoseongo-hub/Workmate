@@ -161,6 +161,12 @@ export default defineConfig({
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
+  // 파일을 상대 경로로 찾게 합니다.
+  //
+  // GitHub Pages 는 https://<계정>.github.io/workmate/ 처럼 하위 폴더에 올라갑니다.
+  // 기본값(/)이면 앱이 /assets/... 를 찾다가 못 찾아 흰 화면만 나옵니다.
+  // "./" 로 두면 하위 폴더든 맨 위(/)든 어디에 올려도 그대로 동작합니다.
+  base: "./",
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
   publicDir: path.resolve(import.meta.dirname, "client", "public"),

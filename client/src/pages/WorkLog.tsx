@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
-import { useLocalState } from "@/hooks/useLocalState";
+import { useSharedState } from "@/hooks/useSharedState";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
 import { STORAGE_KEYS, pad, todayString, type LogRow } from "@/types";
 
@@ -31,7 +31,7 @@ export default function WorkLog() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  const [logs, setLogs] = useLocalState<LogRow[]>(STORAGE_KEYS.logs, []);
+  const [logs, setLogs] = useSharedState<LogRow[]>(STORAGE_KEYS.logs, []);
   const [editing, setEditing] = useState<LogRow | "new" | null>(null);
 
   const goPrev = () => {

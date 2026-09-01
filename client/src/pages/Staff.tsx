@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
-import { useLocalState } from "@/hooks/useLocalState";
+import { useSharedState } from "@/hooks/useSharedState";
+import { InviteCard } from "@/components/InviteCard";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
 import { STORAGE_KEYS, type Member } from "@/types";
 
@@ -18,9 +19,10 @@ import { STORAGE_KEYS, type Member } from "@/types";
 export default function Staff() {
   const { isOwnerMode } = useRole();
 
-  const [members, setMembers] = useLocalState<Member[]>(STORAGE_KEYS.members, [
-    { id: 1, name: "사장님", role: "owner" },
-  ]);
+  const [members, setMembers, isShared] = useSharedState<Member[]>(
+    STORAGE_KEYS.members,
+    [{ id: 1, name: "사장님", role: "owner" }]
+  );
 
   /** 열려 있는 창: 없으면 null, 추가면 "new", 수정이면 그 직원 */
   const [editing, setEditing] = useState<Member | "new" | null>(null);
@@ -78,6 +80,8 @@ export default function Staff() {
         </Button>
       }
     >
+      <InviteCard isShared={isShared} />
+
       <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
         <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">
           <CardTitle className="text-lg font-extrabold tracking-tight">

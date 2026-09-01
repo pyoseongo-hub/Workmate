@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
-import { useLocalState } from "@/hooks/useLocalState";
+import { useSharedState } from "@/hooks/useSharedState";
 import { useSwaps } from "@/hooks/useSwaps";
 import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
@@ -48,7 +48,7 @@ export default function Schedule() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
-  const [shifts, setShifts] = useLocalState<Shift[]>(STORAGE_KEYS.shifts, []);
+  const [shifts, setShifts] = useSharedState<Shift[]>(STORAGE_KEYS.shifts, []);
   const { swaps, addSwap, setStatus } = useSwaps();
 
   /** 달력에서 고른 날짜. 안 골랐으면 null */

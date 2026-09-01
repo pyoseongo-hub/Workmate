@@ -29,8 +29,10 @@ const outDir = join(root, "preview");
 const html = readFileSync(join(distDir, "index.html"), "utf8");
 
 // ── 1. 붙여 넣을 JS·CSS 파일 이름을 HTML에서 찾아냅니다 ──────────────
-const jsName = html.match(/src="\/assets\/(index-[\w-]+\.js)"/)?.[1];
-const cssName = html.match(/href="\/assets\/(index-[\w-]+\.css)"/)?.[1];
+// 앞이 "/assets/" 일 수도 "./assets/" 일 수도 있습니다.
+// vite 설정의 base 값에 따라 달라지므로 둘 다 받습니다.
+const jsName = html.match(/src="\.?\/assets\/(index-[\w-]+\.js)"/)?.[1];
+const cssName = html.match(/href="\.?\/assets\/(index-[\w-]+\.css)"/)?.[1];
 
 if (!jsName || !cssName) {
   console.error("빌드 결과에서 JS/CSS 파일을 찾지 못했습니다. 먼저 pnpm build 를 실행하세요.");

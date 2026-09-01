@@ -1,8 +1,8 @@
-import { Clock3, FileClock, UsersRound } from "lucide-react";
+import { Clock3, FileClock, Users, UsersRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
-import { useLocalState } from "@/hooks/useLocalState";
+import { useSharedState } from "@/hooks/useSharedState";
 import {
   STORAGE_KEYS,
   pad,
@@ -21,9 +21,9 @@ import {
 export default function Dashboard() {
   const { isOwnerMode } = useRole();
 
-  const [shifts] = useLocalState<Shift[]>(STORAGE_KEYS.shifts, []);
-  const [swaps] = useLocalState<SwapRow[]>(STORAGE_KEYS.swaps, []);
-  const [logs] = useLocalState<LogRow[]>(STORAGE_KEYS.logs, []);
+  const [shifts] = useSharedState<Shift[]>(STORAGE_KEYS.shifts, []);
+  const [swaps] = useSharedState<SwapRow[]>(STORAGE_KEYS.swaps, []);
+  const [logs, , isShared] = useSharedState<LogRow[]>(STORAGE_KEYS.logs, []);
 
   const today = todayString();
   const now = new Date();
@@ -49,6 +49,16 @@ export default function Dashboard() {
       title="대시보드"
       description="오늘 근무와 확인이 필요한 일을 모아서 보여드려요."
     >
+      {isShared && (
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
+          <Users className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <p className="text-xs leading-5 text-emerald-800">
+            <span className="font-bold">여럿이 같이 보는 중이에요.</span> 사장님이 근무표를
+            고치면 초대받은 사람 화면에도 바로 바뀝니다.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
         <SummaryCard
           label="오늘 근무"
