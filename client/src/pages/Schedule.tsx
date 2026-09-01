@@ -7,6 +7,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
 import { useSwaps } from "@/hooks/useSwaps";
 import { useNotices } from "@/hooks/useNotices";
+import { MonthSummary } from "@/components/MonthSummary";
 import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
@@ -546,6 +547,15 @@ export default function Schedule() {
               </CardContent>
             </Card>
           )}
+
+          {/* 이 달 근무 합계 — 사장님은 전체, 알바생은 자기 것만 */}
+          <MonthSummary
+            monthLabel={`${month}월`}
+            shifts={monthShifts}
+            members={members}
+            isOwnerMode={isOwnerMode}
+            myName={myName}
+          />
 
           {/* 교대 목록 — 날짜를 골랐으면 그 날짜만, 아니면 이 달 전체 */}
           <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
