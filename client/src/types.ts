@@ -74,6 +74,36 @@ export type LogRow = {
   note: string;
 };
 
+/**
+ * 사람마다 다른 색.
+ *
+ * 폰 달력 칸은 폭이 50px 남짓이라 이름과 시간을 같이 넣으면 잘립니다.
+ * 그래서 달력에는 이름만 넣고, 누구인지는 색으로도 알아보게 합니다.
+ * "이번 달 서연이 몇 번 나오나" 를 같은 색만 세면 알 수 있습니다.
+ *
+ * Tailwind 는 "bg-" + 변수 처럼 이어 붙인 클래스 이름을 알아보지 못하므로
+ * 쓸 색을 통째로 적어 둡니다.
+ */
+export const PERSON_COLORS = [
+  { dot: "bg-blue-500", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-900" },
+  { dot: "bg-violet-500", bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-900" },
+  { dot: "bg-amber-500", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-900" },
+  { dot: "bg-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-900" },
+  { dot: "bg-rose-500", bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-900" },
+  { dot: "bg-cyan-500", bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-900" },
+] as const;
+
+/**
+ * 그 사람의 색을 고릅니다.
+ *
+ * 직원 번호(id)로 고르는 이유: 목록 순서로 고르면 앞사람을 지웠을 때
+ * 남은 사람들 색이 우르르 바뀝니다. id 는 한 번 정해지면 바뀌지 않습니다.
+ */
+export function personColor(members: Member[], name: string) {
+  const member = members.find((item) => item.name === name);
+  return PERSON_COLORS[(member?.id ?? 0) % PERSON_COLORS.length];
+}
+
 /** 1 → "01" */
 export function pad(value: number) {
   return String(value).padStart(2, "0");

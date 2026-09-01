@@ -9,7 +9,14 @@ import { useSwaps } from "@/hooks/useSwaps";
 import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
-import { STORAGE_KEYS, pad, toDateString, type Member, type Shift } from "@/types";
+import {
+  STORAGE_KEYS,
+  pad,
+  personColor,
+  toDateString,
+  type Member,
+  type Shift,
+} from "@/types";
 
 /**
  * 근무표 — 달력을 보면서 교대까지 처리하는 화면입니다.
@@ -338,6 +345,7 @@ export default function Schedule() {
                 month={month}
                 shifts={monthShifts}
                 swaps={swaps}
+                members={members}
                 selectedDate={selectedDate}
                 quickAdd={quickAdd}
                 quickName={pickName}
@@ -485,6 +493,7 @@ function CalendarGrid({
   month,
   shifts,
   swaps,
+  members,
   selectedDate,
   quickAdd,
   quickName,
@@ -494,6 +503,7 @@ function CalendarGrid({
   month: number;
   shifts: Shift[];
   swaps: ReturnType<typeof useSwaps>["swaps"];
+  members: Member[];
   selectedDate: string | null;
   /** 빠른 등록이 켜져 있는가 */
   quickAdd: boolean;
@@ -511,9 +521,29 @@ function CalendarGrid({
 
   const todayStr = new Date().toDateString();
 
+  // 이 달에 근무가 있는 사람만 색 안내에 올립니다.
+  const namesInMonth = Array.from(new Set(shifts.map((shift) => shift.person)));
+
   return (
     <div className="overflow-x-auto">
       <div className="min-w-full">
+        {/* 색 안내 — 누가 무슨 색인지 */}
+        {namesInMonth.length > 0 && (
+          <div className="mb-2.5 flex flex-wrap gap-x-3 gap-y-1.5">
+            {namesInMonth.map((name) => {
+              const color = personColor(members, name);
+              return (
+                <span
+                  key={name}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600"
+                >
+                  <span className={`h-2 w-2 rounded-full ${color.dot}`} />
+                  {name}
+                </span>
+              );
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-7 border-b border-slate-100 pb-2 text-center text-[10px] font-semibold text-slate-400 sm:text-[11px]">
           {WEEKDAYS.map((day) => (
             <span key={day}>{day}</span>
@@ -587,17 +617,22 @@ function CalendarGrid({
                   )}
                 </div>
 
-                {dayShifts.map((shift, i) => (
-                  <div
-                    key={i}
-                    className="mt-1 rounded-md border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] leading-tight text-blue-800 sm:mt-1.5 sm:rounded-lg sm:px-1.5 sm:py-1 sm:text-[10px]"
-                  >
-                    <div className="truncate font-bold">{shift.person}</div>
-                    <div className="truncate opacity-75">
-                      {shortTime(shift.start, shift.end)}
+                {/* 폰에서는 이름만 (시간까지 넣으면 두 명째부터 칸이 넘칩니다).
+                    화면이 넓으면 시간도 함께 보여 줍니다. */}
+                {dayShifts.map((shift, i) => {
+                  const color = personColor(members, shift.person);
+                  return (
+                    <div
+                      key={i}
+                      className={`mt-1 rounded-md border px-1 py-0.5 text-[9px] leading-tight sm:mt-1.5 sm:rounded-lg sm:px-1.5 sm:py-1 sm:text-[10px] ${color.bg} ${color.border} ${color.text}`}
+                    >
+                      <div className="truncate font-bold">{shift.person}</div>
+                      <div className="hidden truncate opacity-75 sm:block">
+                        {shortTime(shift.start, shift.end)}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </button>
             );
           })}
