@@ -3,16 +3,16 @@ import { Link, useLocation } from "wouter";
 import {
   Bell,
   CalendarDays,
+  Eye,
   FileClock,
   LockKeyhole,
+  LogOut,
   Menu,
   ShieldCheck,
   Sparkles,
   UserRound,
   UsersRound,
-  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { useRole } from "@/contexts/RoleContext";
 
@@ -48,11 +48,12 @@ type Props = {
 
 export default function AppLayout({ title, description, action, children }: Props) {
   const [location] = useLocation();
-  const { isOwnerMode, exitOwnerMode } = useRole();
+  const { myName, isOwner, isOwnerMode, viewAsStaff, toggleViewAsStaff, logout } =
+    useRole();
 
   const [showMenu, setShowMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f6f8fb] text-slate-900">
@@ -86,18 +87,59 @@ export default function AppLayout({ title, description, action, children }: Prop
           </div>
 
           <div className="flex items-center gap-1 sm:gap-3">
-            {/* 역할 배지 — 누르면 모드가 바뀝니다.
-                폰에서도 보여야 합니다. 예전에는 hidden 이라 폰에서 모드를 못 바꿨습니다. */}
-            <button
-              onClick={() => (isOwnerMode ? exitOwnerMode() : setShowPinDialog(true))}
-              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs"
-            >
-              <span
-                className={`h-2 w-2 shrink-0 rounded-full ${isOwnerMode ? "bg-amber-500" : "bg-emerald-500"}`}
-              />
-              {isOwnerMode ? "사장님" : "알바생"}
-              <span className="hidden sm:inline">모드</span>
-            </button>
+            {/* 내 이름 — 누르면 화면 바꾸기·나가기가 나옵니다 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs"
+              >
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${isOwnerMode ? "bg-amber-500" : "bg-emerald-500"}`}
+                />
+                <span className="max-w-[70px] truncate sm:max-w-none">{myName}</span>
+                {isOwnerMode && <span className="hidden sm:inline">· 사장님</span>}
+              </button>
+
+              {showUserMenu && (
+                <>
+                  {/* 바깥을 누르면 닫힙니다 */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                    aria-hidden
+                  />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+                    <div className="px-3 py-2">
+                      <p className="text-sm font-bold text-slate-900">{myName}</p>
+                      <p className="text-[11px] text-slate-400">
+                        {isOwner ? "사장님" : "직원"}
+                      </p>
+                    </div>
+
+                    {isOwner && (
+                      <button
+                        onClick={() => {
+                          toggleViewAsStaff();
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {viewAsStaff ? "사장님 화면으로" : "알바생 화면으로 보기"}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={logout}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      나가기
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -130,21 +172,19 @@ export default function AppLayout({ title, description, action, children }: Prop
               const isActive = location === item.path;
               const isLocked = item.ownerOnly && !isOwnerMode;
 
-              // 사장님 전용 메뉴인데 알바생 모드면 → 비밀번호 창을 띄웁니다
+              // 사장님 전용 메뉴는 알바생에게 잠긴 채로 보여 줍니다.
+              // 있다는 건 알되 열 수는 없습니다.
               if (isLocked) {
                 return (
-                  <button
+                  <div
                     key={item.path}
-                    onClick={() => {
-                      setShowMenu(false); // 메뉴를 먼저 닫아야 비밀번호 창이 가려지지 않습니다
-                      setShowPinDialog(true);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 hover:bg-slate-50"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300"
+                    title="사장님만 볼 수 있어요"
                   >
                     <Icon className="h-[17px] w-[17px]" />
                     <span>{item.label}</span>
-                    <LockKeyhole className="ml-auto h-4 w-4 text-slate-300" />
-                  </button>
+                    <LockKeyhole className="ml-auto h-4 w-4" />
+                  </div>
                 );
               }
 
@@ -206,94 +246,6 @@ export default function AppLayout({ title, description, action, children }: Prop
       {showNotifications && (
         <NotificationCenter onClose={() => setShowNotifications(false)} />
       )}
-
-      {showPinDialog && <OwnerPinDialog onClose={() => setShowPinDialog(false)} />}
-    </div>
-  );
-}
-
-/** 사장님 비밀번호 입력 창 */
-function OwnerPinDialog({ onClose }: { onClose: () => void }) {
-  const { enterOwnerMode } = useRole();
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-
-  const submit = () => {
-    if (enterOwnerMode(pin)) {
-      onClose();
-      return;
-    }
-    setError("비밀번호가 맞지 않습니다.");
-    setPin("");
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/30 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="w-full max-w-md rounded-t-[28px] bg-white p-6 shadow-2xl sm:rounded-[28px]">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-extrabold tracking-tight text-slate-900">
-              사장님 인증
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-slate-400">
-              교대 승인 · 직원 관리 · 지난 기록 수정은 사장님만 할 수 있어요.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
-            aria-label="닫기"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <label className="block">
-            <span className="text-xs font-bold text-slate-600">
-              사장님 비밀번호 (4자리 숫자)
-            </span>
-            <input
-              type="password"
-              value={pin}
-              maxLength={4}
-              inputMode="numeric"
-              autoFocus
-              onChange={(e) => {
-                setPin(e.target.value);
-                setError("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && pin.length === 4) submit();
-              }}
-              className="mt-2 h-14 w-full rounded-xl border border-slate-200 px-4 text-center text-2xl font-bold tracking-widest outline-none focus:border-blue-500"
-              placeholder="••••"
-            />
-            {error && (
-              <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p>
-            )}
-          </label>
-
-          <p className="text-[11px] text-slate-400">기본 비밀번호: 0000</p>
-
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="h-11 flex-1 rounded-xl text-sm font-bold"
-            >
-              취소
-            </Button>
-            <Button
-              onClick={submit}
-              disabled={pin.length !== 4}
-              className="h-11 flex-1 rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800"
-            >
-              확인
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

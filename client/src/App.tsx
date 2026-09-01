@@ -5,6 +5,7 @@ import { useHashLocation } from "wouter/use-hash-location";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { RoleProvider } from "./contexts/RoleContext";
+import { LoginGate } from "./components/LoginGate";
 
 import Dashboard from "./pages/Dashboard";
 import Schedule from "./pages/Schedule";
@@ -55,12 +56,15 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        {/* RoleProvider: 사장님/알바생 모드를 앱 전체에서 공유합니다 */}
+        {/* RoleProvider: 지금 들어와 있는 사람이 누구인지 앱 전체에서 공유합니다 */}
         <RoleProvider>
-          <TooltipProvider>
-            <Toaster />
-            <AppRouter />
-          </TooltipProvider>
+          {/* LoginGate: 이름과 번호로 들어오기 전에는 앱 화면을 보여주지 않습니다 */}
+          <LoginGate>
+            <TooltipProvider>
+              <Toaster />
+              <AppRouter />
+            </TooltipProvider>
+          </LoginGate>
         </RoleProvider>
       </ThemeProvider>
     </ErrorBoundary>

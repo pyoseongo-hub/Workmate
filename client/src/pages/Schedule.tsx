@@ -42,16 +42,13 @@ function shortTime(start: string, end: string) {
 }
 
 export default function Schedule() {
-  const { isOwnerMode, myName, setMyName } = useRole();
+  const { isOwnerMode, myName, members } = useRole();
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
   const [shifts, setShifts] = useSharedState<Shift[]>(STORAGE_KEYS.shifts, []);
-  const [members] = useSharedState<Member[]>(STORAGE_KEYS.members, [
-    { id: 1, name: "사장님", role: "owner" },
-  ]);
   const { swaps, addSwap, setStatus } = useSwaps();
 
   /** 달력에서 고른 날짜. 안 골랐으면 null */
@@ -171,9 +168,8 @@ export default function Schedule() {
     }
   };
 
-  /** 빠른 등록을 켜고 끕니다. 켤 때 고른 이름을 "내 이름"으로 기억합니다. */
+  /** 빠른 등록을 켜고 끕니다. */
   const toggleQuickAdd = () => {
-    if (!quickAdd && pickName) setMyName(pickName);
     setQuickAdd(!quickAdd);
     setSelectedDate(null);
   };

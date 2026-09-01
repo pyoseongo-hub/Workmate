@@ -1,28 +1,21 @@
 import { useState } from "react";
-import { Plus, ShieldAlert } from "lucide-react";
+import { KeyRound, Plus, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
-import { useSharedState } from "@/hooks/useSharedState";
 import { InviteCard } from "@/components/InviteCard";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
-import { STORAGE_KEYS, type Member } from "@/types";
+import type { Member } from "@/types";
 
 /**
  * 직원 관리 — 매장 직원을 추가·수정·삭제하는 화면입니다. 사장님 전용.
  *
- * 등록한 직원은 브라우저에 저장되어 새로고침해도 남습니다.
- * 다음 단계에서 서버에 저장하도록 바꿉니다.
+ * 직원마다 4자리 번호가 있습니다. 그 번호로 앱에 들어옵니다.
+ * 사장님이 정해서 알려 주면 됩니다.
  */
-
 export default function Staff() {
-  const { isOwnerMode } = useRole();
-
-  const [members, setMembers, isShared] = useSharedState<Member[]>(
-    STORAGE_KEYS.members,
-    [{ id: 1, name: "사장님", role: "owner" }]
-  );
+  const { members, setMembers, isOwnerMode, myName } = useRole();
 
   /** 열려 있는 창: 없으면 null, 추가면 "new", 수정이면 그 직원 */
   const [editing, setEditing] = useState<Member | "new" | null>(null);
@@ -36,9 +29,9 @@ export default function Staff() {
             <ShieldAlert className="h-8 w-8 text-amber-500" />
             <p className="text-sm font-bold text-slate-700">사장님 전용 화면입니다.</p>
             <p className="text-xs text-slate-400">
-              오른쪽 위 <span className="font-semibold">알바생 모드</span> 배지를 눌러
+              직원을 추가하거나 번호를 바꾸려면
               <br />
-              사장님 비밀번호를 입력해 주세요.
+              사장님 이름으로 들어와 주세요.
             </p>
           </CardContent>
         </Card>
@@ -46,15 +39,15 @@ export default function Staff() {
     );
   }
 
-  const save = (name: string) => {
+  const save = (name: string, pin: string) => {
     if (editing === "new") {
       // 새 번호는 지금 있는 번호 중 가장 큰 값 + 1
       const nextId = Math.max(0, ...members.map((member) => member.id)) + 1;
-      setMembers([...members, { id: nextId, name, role: "staff" }]);
+      setMembers([...members, { id: nextId, name, pin, role: "staff" }]);
     } else if (editing) {
       setMembers(
         members.map((member) =>
-          member.id === editing.id ? { ...member, name } : member
+          member.id === editing.id ? { ...member, name, pin } : member
         )
       );
     }
@@ -66,10 +59,17 @@ export default function Staff() {
     setMembers(members.filter((item) => item.id !== member.id));
   };
 
+  /** 이름이 겹치면 누가 누군지 알 수 없습니다. 미리 막습니다. */
+  const isNameTaken = (name: string) =>
+    members.some(
+      (member) =>
+        member.name === name && (editing === "new" || member.id !== editing?.id)
+    );
+
   return (
     <AppLayout
       title="직원 관리"
-      description="매장 직원을 추가하거나 이름을 고칠 수 있어요."
+      description="직원을 추가하고, 앱에 들어올 때 쓸 번호를 정해 주세요."
       action={
         <Button
           onClick={() => setEditing("new")}
@@ -80,13 +80,16 @@ export default function Staff() {
         </Button>
       }
     >
-      <InviteCard isShared={isShared} />
+      <InviteCard isShared={false} />
 
       <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
         <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">
           <CardTitle className="text-lg font-extrabold tracking-tight">
             직원 목록 ({members.length}명)
           </CardTitle>
+          <p className="mt-1 text-xs text-slate-400">
+            직원에게 이름과 번호를 알려 주면 그걸로 들어옵니다.
+          </p>
         </CardHeader>
 
         <CardContent className="p-4 sm:p-7">
@@ -97,26 +100,36 @@ export default function Staff() {
                 className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-bold text-slate-900">{member.name}</p>
-                  <p className="text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-bold text-slate-900">{member.name}</p>
+                    {member.name === myName && (
+                      <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                        나
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                     {member.role === "owner" ? "사장님" : "직원"}
+                    <span className="text-slate-300">·</span>
+                    <KeyRound className="h-3 w-3" />
+                    {member.pin}
                   </p>
                 </div>
 
-                {member.role === "owner" ? (
-                  <span className="shrink-0 text-xs font-bold text-slate-400">
-                    소유자
-                  </span>
-                ) : (
-                  <div className="flex shrink-0 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditing(member)}
-                      className="rounded-xl text-xs"
-                    >
-                      수정
-                    </Button>
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditing(member)}
+                    className="rounded-xl text-xs"
+                  >
+                    수정
+                  </Button>
+                  {member.role === "owner" ? (
+                    <span className="flex items-center px-2 text-xs font-bold text-slate-400">
+                      소유자
+                    </span>
+                  ) : (
                     <Button
                       variant="outline"
                       size="sm"
@@ -125,8 +138,8 @@ export default function Staff() {
                     >
                       삭제
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -135,8 +148,8 @@ export default function Staff() {
 
       {editing && (
         <MemberDialog
-          initialName={editing === "new" ? "" : editing.name}
-          isNew={editing === "new"}
+          initial={editing === "new" ? null : editing}
+          isNameTaken={isNameTaken}
           onSubmit={save}
           onClose={() => setEditing(null)}
         />
@@ -147,39 +160,47 @@ export default function Staff() {
 
 /** 직원 추가·수정 창 */
 function MemberDialog({
-  initialName,
-  isNew,
+  initial,
+  isNameTaken,
   onSubmit,
   onClose,
 }: {
-  initialName: string;
-  isNew: boolean;
-  onSubmit: (name: string) => void;
+  initial: Member | null;
+  isNameTaken: (name: string) => boolean;
+  onSubmit: (name: string, pin: string) => void;
   onClose: () => void;
 }) {
-  const [name, setName] = useState(initialName);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [pin, setPin] = useState(initial?.pin ?? "");
   const [error, setError] = useState("");
 
   const submit = () => {
-    if (!name.trim()) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       setError("이름을 적어 주세요.");
       return;
     }
-    onSubmit(name.trim());
+    if (isNameTaken(trimmed)) {
+      setError("같은 이름이 이미 있습니다. 구분되는 이름으로 적어 주세요.");
+      return;
+    }
+    if (!/^\d{4}$/.test(pin)) {
+      setError("번호는 숫자 4자리로 정해 주세요.");
+      return;
+    }
+    onSubmit(trimmed, pin);
   };
 
   return (
     <FormDialog
-      title={isNew ? "직원 추가" : "이름 수정"}
-      description={
-        isNew ? "새로 들어온 직원을 등록합니다." : "직원 이름을 고칩니다."
-      }
-      submitLabel={isNew ? "추가하기" : "수정하기"}
+      title={initial ? "직원 정보 수정" : "직원 추가"}
+      description="이름과 번호를 직원에게 알려 주면 그걸로 앱에 들어옵니다."
+      submitLabel={initial ? "수정하기" : "추가하기"}
       error={error}
       onSubmit={submit}
       onClose={onClose}
     >
-      <Field label="직원 이름">
+      <Field label="이름">
         <input
           value={name}
           autoFocus
@@ -187,13 +208,31 @@ function MemberDialog({
             setName(event.target.value);
             setError("");
           }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") submit();
-          }}
           placeholder="예: 서연"
           className={inputClass}
         />
       </Field>
+
+      <Field label="들어올 때 쓸 번호 (숫자 4자리)">
+        <input
+          inputMode="numeric"
+          maxLength={4}
+          value={pin}
+          onChange={(event) => {
+            setPin(event.target.value.replace(/\D/g, ""));
+            setError("");
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") submit();
+          }}
+          placeholder="0000"
+          className={`${inputClass} text-center text-lg tracking-[0.4em]`}
+        />
+      </Field>
+
+      <p className="text-[11px] leading-4 text-slate-400">
+        번호는 목록에서 다시 볼 수 있으니, 직원이 잊어도 알려 줄 수 있어요.
+      </p>
     </FormDialog>
   );
 }

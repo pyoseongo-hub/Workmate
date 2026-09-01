@@ -1,76 +1,59 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useSharedState } from "@/hooks/useSharedState";
+import { STORAGE_KEYS, type Member } from "@/types";
 
 /**
- * 사장님 모드 / 알바생 모드를 앱 전체에서 함께 쓰기 위한 저장소입니다.
+ * 지금 이 기기를 쓰는 사람이 누구인지 앱 전체에서 함께 쓰는 저장소입니다.
  *
- * 값이 두 개인 이유를 꼭 기억해 주세요.
+ * 들어오는 방법:
+ *   이름을 고르고 자기 4자리 번호를 넣습니다.
+ *   번호가 맞으면 그 사람으로 들어오고, 사장님이면 사장님 화면이 됩니다.
  *
- *   isOwnerAccount : 서버가 인정한 "사장님 계정"인가?  (로그인 정보 기준)
- *   isOwnerMode    : 지금 화면을 사장님 모드로 보고 있는가?  (비밀번호 입력 완료)
+ * 예전에는 "이름 고르기" 와 "사장님 비밀번호" 가 따로 놀았습니다.
+ * 이제 한 번에 정해집니다.
  *
- * 왜 나누었나:
- *   사장님이라도 평소에는 알바생 화면으로 보다가,
- *   필요할 때만 비밀번호를 넣고 사장님 모드로 바꿀 수 있게 하려고요.
- *
- * ⚠️ 중요 — 지금 비밀번호는 이 파일(=브라우저)에 들어 있습니다.
- *   브라우저 개발자도구를 열면 누구나 볼 수 있으니 "진짜 잠금"이 아닙니다.
- *   화면을 가려주는 역할일 뿐입니다.
- *
- *   진짜 잠금은 서버가 합니다. server/routers.ts 의 ownerOnly 가
- *   사장님 계정이 아니면 승인·직원관리 요청을 거절합니다.
- *   → 나중에 이 비밀번호도 서버로 옮길 예정입니다. (2단계 작업)
+ * ⚠️ 번호 확인은 이 브라우저 안에서 합니다.
+ *    "남의 이름으로 잘못 들어가는 것" 을 막는 정도이지,
+ *    작정하고 뚫으려는 사람을 막지는 못합니다.
+ *    (서버를 붙이면 번호 확인을 서버로 옮길 예정입니다)
  */
 
-const OWNER_PIN = "0000";
-
 type RoleValue = {
-  /** 서버 기준 사장님 계정인가 */
-  isOwnerAccount: boolean;
-  /** 지금 사장님 모드로 보고 있는가 */
-  isOwnerMode: boolean;
-  /** 비밀번호를 확인하고 사장님 모드로 들어갑니다. 맞으면 true */
-  enterOwnerMode: (pin: string) => boolean;
-  /** 알바생 모드로 돌아갑니다 */
-  exitOwnerMode: () => void;
-  /** 이 기기를 쓰는 사람의 이름. 아직 안 골랐으면 빈 글자 */
+  /** 매장 직원 목록 (로그인 화면과 여러 화면이 함께 씁니다) */
+  members: Member[];
+  /** 지금 들어와 있는 사람. 아직 안 들어왔으면 null */
+  me: Member | null;
+  /** 들어와 있는 사람 이름. 없으면 빈 글자 */
   myName: string;
-  /** 내 이름을 정합니다 */
-  setMyName: (name: string) => void;
+  /** 이 사람이 사장님인가 (직원 목록 기준) */
+  isOwner: boolean;
+  /** 지금 사장님 화면으로 보고 있는가 */
+  isOwnerMode: boolean;
+  /** 사장님이 알바생 화면을 둘러보는 중인가 */
+  viewAsStaff: boolean;
+
+  /** 이름과 번호로 들어옵니다. 맞으면 true */
+  login: (name: string, pin: string) => boolean;
+  /** 맨 처음 매장을 만듭니다. 사장님을 만들고 바로 들어옵니다 */
+  setupOwner: (name: string, pin: string) => void;
+  /** 나갑니다 */
+  logout: () => void;
+  /** 사장님이 알바생 화면으로 보기를 켜고 끕니다 */
+  toggleViewAsStaff: () => void;
+  /** 직원 목록을 고칩니다 (직원 관리 화면에서 씁니다) */
+  setMembers: (next: Member[]) => void;
 };
 
 const RoleContext = createContext<RoleValue | null>(null);
 
 /**
- * 사장님 모드를 브라우저 탭에 기억시키는 열쇠 이름입니다.
- *
- * sessionStorage 를 쓰는 이유:
- *   · 새로고침해도 모드가 풀리지 않습니다(매번 비밀번호를 넣지 않아도 됨).
- *   · 탭을 닫으면 자동으로 풀립니다(공용 기기에서 남지 않음).
- */
-const OWNER_MODE_KEY = "workmate-owner-mode";
-
-/**
- * 이 기기를 쓰는 사람의 이름을 담아 두는 열쇠입니다.
- *
- * 사장님 모드와 달리 localStorage 를 씁니다.
- *   · 앱을 껐다 켜도 "나는 서연" 이 그대로 남아야 편합니다.
- *   · 근무를 넣을 때마다 이름을 다시 고르지 않아도 됩니다.
- *
- * 이 값은 이 기기에만 남습니다. 다른 사람 폰에는 그 사람 이름이 남습니다.
+ * 들어와 있는 사람 이름을 이 기기에 담아 두는 열쇠입니다.
+ * 앱을 껐다 켜도 남아 있어야 매번 번호를 넣지 않습니다.
  */
 const MY_NAME_KEY = "workmate-my-name";
 
-/** sessionStorage 는 브라우저 설정에 따라 막힐 수 있어 try 로 감쌉니다. */
-function readSavedOwnerMode() {
-  try {
-    return sessionStorage.getItem(OWNER_MODE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function readSavedMyName() {
+/** localStorage 는 브라우저 설정에 따라 막힐 수 있어 try 로 감쌉니다. */
+function readSavedName() {
   try {
     return localStorage.getItem(MY_NAME_KEY) ?? "";
   } catch {
@@ -79,46 +62,68 @@ function readSavedMyName() {
 }
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const [isOwnerMode, setIsOwnerMode] = useState(readSavedOwnerMode);
+  const [members, setMembers] = useSharedState<Member[]>(STORAGE_KEYS.members, []);
+  const [myName, setMyName] = useState(readSavedName);
+  const [viewAsStaff, setViewAsStaff] = useState(false);
 
-  const isOwnerAccount = user?.role === "admin";
+  // 사장님인지는 저장해 두지 않고 직원 목록에서 그때그때 봅니다.
+  // 저장해 두면 그 값만 고쳐서 사장님 행세를 할 수 있습니다.
+  const me = members.find((member) => member.name === myName) ?? null;
+  const isOwner = me?.role === "owner";
+  const isOwnerMode = isOwner && !viewAsStaff;
 
-  const enterOwnerMode = (pin: string) => {
-    if (pin !== OWNER_PIN) return false;
-    setIsOwnerMode(true);
+  const login = (name: string, pin: string) => {
+    const found = members.find((member) => member.name === name);
+    if (!found || found.pin !== pin) return false;
+
+    setMyName(name);
+    setViewAsStaff(false);
     try {
-      sessionStorage.setItem(OWNER_MODE_KEY, "1");
+      localStorage.setItem(MY_NAME_KEY, name);
     } catch {}
     return true;
   };
 
-  const exitOwnerMode = () => {
-    setIsOwnerMode(false);
+  /**
+   * 맨 처음 매장을 만들 때.
+   *
+   * 직원 목록을 만드는 것과 들어오는 것을 한 번에 합니다.
+   * 따로 하면 목록이 아직 반영되지 않은 사이에 login 이 실패해
+   * 매장을 만들자마자 다시 "누구세요?" 화면이 뜹니다.
+   */
+  const setupOwner = (name: string, pin: string) => {
+    setMembers([{ id: 1, name, role: "owner", pin }]);
+    setMyName(name);
+    setViewAsStaff(false);
     try {
-      sessionStorage.removeItem(OWNER_MODE_KEY);
+      localStorage.setItem(MY_NAME_KEY, name);
     } catch {}
   };
 
-  const [myName, setMyNameState] = useState(readSavedMyName);
-
-  const setMyName = (name: string) => {
-    setMyNameState(name);
+  const logout = () => {
+    setMyName("");
+    setViewAsStaff(false);
     try {
-      if (name) localStorage.setItem(MY_NAME_KEY, name);
-      else localStorage.removeItem(MY_NAME_KEY);
+      localStorage.removeItem(MY_NAME_KEY);
     } catch {}
   };
+
+  const toggleViewAsStaff = () => setViewAsStaff(!viewAsStaff);
 
   return (
     <RoleContext.Provider
       value={{
-        isOwnerAccount,
-        isOwnerMode,
-        enterOwnerMode,
-        exitOwnerMode,
+        members,
+        me,
         myName,
-        setMyName,
+        isOwner,
+        isOwnerMode,
+        viewAsStaff,
+        login,
+        setupOwner,
+        logout,
+        toggleViewAsStaff,
+        setMembers,
       }}
     >
       {children}
