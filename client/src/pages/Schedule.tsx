@@ -10,7 +10,7 @@ import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
 import {
-  STORAGE_KEYS,
+
   pad,
   personColor,
   toDateString,
@@ -55,7 +55,7 @@ export default function Schedule() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
-  const [shifts, setShifts] = useSharedState<Shift[]>(STORAGE_KEYS.shifts, []);
+  const [shifts, setShifts] = useSharedState<Shift[]>("shifts", []);
   const { swaps, addSwap, setStatus } = useSwaps();
 
   /** 달력에서 고른 날짜. 안 골랐으면 null */

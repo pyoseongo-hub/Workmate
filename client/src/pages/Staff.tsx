@@ -80,7 +80,7 @@ export default function Staff() {
         </Button>
       }
     >
-      <InviteCard isShared={false} />
+      <InviteCard />
 
       <Card className="overflow-hidden rounded-3xl border-0 py-0 shadow-sm shadow-slate-200/60">
         <CardHeader className="border-b border-slate-100 px-4 py-4 sm:px-7 sm:py-5">

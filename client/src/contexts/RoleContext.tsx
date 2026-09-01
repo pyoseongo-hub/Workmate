@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useSharedState } from "@/hooks/useSharedState";
-import { STORAGE_KEYS, type Member } from "@/types";
+import { type Member } from "@/types";
 
 /**
  * 지금 이 기기를 쓰는 사람이 누구인지 앱 전체에서 함께 쓰는 저장소입니다.
@@ -62,7 +62,7 @@ function readSavedName() {
 }
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const [members, setMembers] = useSharedState<Member[]>(STORAGE_KEYS.members, []);
+  const [members, setMembers] = useSharedState<Member[]>("members", []);
   const [myName, setMyName] = useState(readSavedName);
   const [viewAsStaff, setViewAsStaff] = useState(false);
 

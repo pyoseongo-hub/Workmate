@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Copy, Share2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { currentStoreCode, inviteLink } from "@/lib/store";
 
 /**
  * 근무자 초대 카드 — 사장님이 알바생에게 링크를 보내는 곳입니다.
@@ -10,19 +11,19 @@ import { Card, CardContent } from "@/components/ui/card";
  * 공유 창이 열립니다(navigator.share). 카카오 개발자 등록이나
  * 앱 키가 필요 없고, 폰에 깔린 앱이 그대로 나옵니다.
  *
- * PC 브라우저에는 그 공유 창이 없어서, 대신 링크를 복사해 줍니다.
+ * 링크에는 매장 코드가 들어 있어, 받은 사람이 열면 바로 우리 매장으로
+ * 들어옵니다. 코드를 직접 불러 줄 수도 있어 여섯 글자를 함께 보여 줍니다.
  */
-export function InviteCard({ isShared }: { isShared: boolean }) {
+export function InviteCard() {
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState("");
+  const code = currentStoreCode();
 
   // 공유 창은 주로 폰에만 있습니다. PC 브라우저에는 없는 경우가 많습니다.
-  // ("share" in navigator) 로 확인합니다 — 타입상 navigator.share 는 항상 있는 것처럼
-  // 보이지만 실제로는 없는 브라우저가 많습니다.
   const canShare = "share" in navigator;
 
   const invite = async () => {
-    const url = window.location.href;
+    const url = code ? inviteLink(code) : window.location.href;
     setMessage("");
 
     // ① 폰: 카카오톡이 들어 있는 공유 창을 엽니다
@@ -30,12 +31,12 @@ export function InviteCard({ isShared }: { isShared: boolean }) {
       try {
         await navigator.share({
           title: "우리 매장 근무표",
-          text: "WorkMate 로 근무표와 교대를 확인해 주세요.",
+          text: `WorkMate 로 근무표를 확인해 주세요.${code ? ` (매장 코드 ${code})` : ""}`,
           url,
         });
         return;
       } catch {
-        // 사용자가 공유를 취소했거나 이 화면에서는 막혀 있습니다 → ②로 넘어갑니다
+        // 취소했거나 이 화면에서는 막혀 있습니다 → ②로 넘어갑니다
       }
     }
 
@@ -59,16 +60,26 @@ export function InviteCard({ isShared }: { isShared: boolean }) {
           <div className="min-w-0">
             <p className="text-base font-extrabold tracking-tight">근무자 초대</p>
             <p className="mt-1 text-xs leading-5 text-slate-400">
-              {isShared
-                ? "링크를 받은 사람은 같은 근무표를 봅니다. 사장님이 근무를 고치면 알바생 화면에도 바로 바뀝니다."
-                : "지금은 이 기기에만 저장되고 있어요. 초대 링크로 연 화면에서는 모두가 같은 근무표를 봅니다."}
+              {code
+                ? "링크를 받은 사람은 우리 매장 근무표를 함께 봅니다. 사장님이 고치면 알바생 화면에도 반영됩니다."
+                : "지금은 이 기기에만 저장되고 있어요."}
             </p>
           </div>
         </div>
 
+        {code && (
+          <div className="mt-4 rounded-2xl bg-white/5 px-4 py-3 text-center">
+            <p className="text-[11px] font-semibold text-slate-400">우리 매장 코드</p>
+            <p className="mt-1 text-2xl font-extrabold tracking-[0.2em]">{code}</p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              링크 대신 이 여섯 글자를 불러 줘도 됩니다
+            </p>
+          </div>
+        )}
+
         <Button
           onClick={invite}
-          className="mt-5 h-11 w-full gap-2 rounded-xl bg-white text-sm font-bold text-slate-900 hover:bg-slate-100"
+          className="mt-4 h-11 w-full gap-2 rounded-xl bg-white text-sm font-bold text-slate-900 hover:bg-slate-100"
         >
           {copied ? (
             <>

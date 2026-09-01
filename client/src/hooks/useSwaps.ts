@@ -1,5 +1,5 @@
 import { useSharedState } from "@/hooks/useSharedState";
-import { STORAGE_KEYS, type SwapRow, type SwapStatus } from "@/types";
+import { type SwapRow, type SwapStatus } from "@/types";
 
 /**
  * 교대 요청을 읽고 고치는 곳을 한 군데로 모았습니다.
@@ -8,7 +8,7 @@ import { STORAGE_KEYS, type SwapRow, type SwapStatus } from "@/types";
  * 같은 저장소를 보므로, 한쪽에서 신청하면 다른 쪽에도 바로 나타납니다.
  */
 export function useSwaps() {
-  const [swaps, setSwaps, isShared] = useSharedState<SwapRow[]>(STORAGE_KEYS.swaps, []);
+  const [swaps, setSwaps, isShared] = useSharedState<SwapRow[]>("swaps", []);
 
   /** 새 교대를 신청합니다. 처음 상태는 "상대 확인 대기" 입니다. */
   const addSwap = (form: Omit<SwapRow, "id" | "status">) => {

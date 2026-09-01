@@ -6,7 +6,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
-import { STORAGE_KEYS, pad, todayString, type LogRow } from "@/types";
+import { pad, todayString, type LogRow } from "@/types";
 
 /**
  * 근무일지 — 예정 근무와 실제 출퇴근을 나눠서 기록하는 화면입니다.
@@ -31,7 +31,7 @@ export default function WorkLog() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  const [logs, setLogs] = useSharedState<LogRow[]>(STORAGE_KEYS.logs, []);
+  const [logs, setLogs] = useSharedState<LogRow[]>("logs", []);
   const [editing, setEditing] = useState<LogRow | "new" | null>(null);
 
   const goPrev = () => {

@@ -150,7 +150,19 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+/**
+ * 개발 도구는 개발할 때만 넣습니다.
+ *
+ * vitePluginManusRuntime 은 이 프로젝트를 만든 도구가 화면을 들여다볼 때 쓰는
+ * 것으로, 빌드 결과에 358KB 짜리 스크립트를 index.html 안에 통째로 넣습니다.
+ * 배포판에서는 쓰지 않는데도 브라우저가 그걸 받아 읽느라 첫 화면이 느려집니다.
+ * (실제로 매장을 만든 뒤 다음 화면까지 14초가 걸렸습니다)
+ */
+const isBuild = process.env.NODE_ENV === "production";
+
+const plugins = isBuild
+  ? [react(), tailwindcss()]
+  : [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
   plugins,

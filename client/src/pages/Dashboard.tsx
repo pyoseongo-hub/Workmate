@@ -4,7 +4,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
 import {
-  STORAGE_KEYS,
+
   pad,
   todayString,
   type LogRow,
@@ -21,9 +21,9 @@ import {
 export default function Dashboard() {
   const { isOwnerMode } = useRole();
 
-  const [shifts] = useSharedState<Shift[]>(STORAGE_KEYS.shifts, []);
-  const [swaps] = useSharedState<SwapRow[]>(STORAGE_KEYS.swaps, []);
-  const [logs, , isShared] = useSharedState<LogRow[]>(STORAGE_KEYS.logs, []);
+  const [shifts] = useSharedState<Shift[]>("shifts", []);
+  const [swaps] = useSharedState<SwapRow[]>("swaps", []);
+  const [logs, , isShared] = useSharedState<LogRow[]>("logs", []);
 
   const today = todayString();
   const now = new Date();

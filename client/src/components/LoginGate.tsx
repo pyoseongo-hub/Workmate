@@ -3,6 +3,13 @@ import { CalendarDays, LogIn, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/contexts/RoleContext";
 import { Field, inputClass } from "@/components/FormDialog";
+import {
+  checkServer,
+  createStore,
+  currentStoreCode,
+  fetchStore,
+  setStoreCode,
+} from "@/lib/store";
 
 /**
  * 앱에 들어오기 전 거치는 문입니다.
@@ -16,14 +23,25 @@ import { Field, inputClass } from "@/components/FormDialog";
 export function LoginGate({ children }: { children: ReactNode }) {
   const { members, myName, setupOwner, login } = useRole();
 
+  /** 서버가 붙어 있는가. 확인 전에는 null */
+  const [hasServer, setHasServer] = useState<boolean | null>(null);
+  const [storeCode] = useState(currentStoreCode);
+
   // 함께 보는 저장소는 조금 늦게 도착합니다.
   // 곧바로 "직원이 없네" 라고 판단하면 이미 있는 매장인데도
   // 처음 설정 화면이 번쩍 스쳐 지나갑니다. 잠깐 기다립니다.
   const [waited, setWaited] = useState(false);
+
   useEffect(() => {
+    checkServer().then((result) => setHasServer(result.ok));
     const timer = setTimeout(() => setWaited(true), 1200);
     return () => clearTimeout(timer);
   }, []);
+
+  if (hasServer === null) return <Waiting />;
+
+  // 서버는 있는데 어느 매장인지 모르면 먼저 매장부터 정합니다.
+  if (hasServer && !storeCode) return <StoreGate />;
 
   if (myName && members.some((member) => member.name === myName)) {
     return <>{children}</>;
@@ -34,6 +52,196 @@ export function LoginGate({ children }: { children: ReactNode }) {
   }
 
   return <SignIn members={members} onLogin={login} />;
+}
+
+/**
+ * 매장을 정하는 화면 — 새로 열거나, 받은 코드로 들어갑니다.
+ *
+ * 매장을 정한 뒤에는 화면을 새로 불러옵니다.
+ * 자료를 읽는 곳이 여러 군데라, 중간에 매장이 바뀌면 어떤 곳은 옛 매장을,
+ * 어떤 곳은 새 매장을 보게 됩니다. 새로 부르면 전부 같은 곳을 봅니다.
+ */
+function StoreGate() {
+  const [mode, setMode] = useState<"pick" | "new" | "join">("pick");
+  const [storeName, setStoreName] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const openNew = async () => {
+    if (!storeName.trim()) {
+      setError("매장 이름을 적어 주세요.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await createStore(storeName.trim());
+      window.location.reload();
+    } catch {
+      setError("매장을 만들지 못했습니다. 잠시 후 다시 해주세요.");
+      setBusy(false);
+    }
+  };
+
+  const join = async () => {
+    const trimmed = code.trim().toUpperCase();
+    if (trimmed.length !== 6) {
+      setError("매장 코드는 여섯 글자입니다.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+
+    const found = await fetchStore(trimmed);
+    if (!found) {
+      setError("그런 매장 코드가 없습니다. 사장님께 다시 확인해 주세요.");
+      setBusy(false);
+      return;
+    }
+
+    setStoreCode(trimmed);
+    window.location.reload();
+  };
+
+  if (mode === "pick") {
+    return (
+      <Shell>
+        <div className="flex items-center gap-2">
+          <Store className="h-4 w-4 text-blue-600" />
+          <h1 className="text-base font-extrabold tracking-tight">시작하기</h1>
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-slate-400">
+          매장을 새로 열거나, 사장님께 받은 코드로 들어오세요.
+        </p>
+
+        <div className="mt-6 space-y-2.5">
+          <Button
+            onClick={() => setMode("new")}
+            className="h-12 w-full rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800"
+          >
+            매장 새로 열기
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setMode("join")}
+            className="h-12 w-full rounded-xl text-sm font-bold"
+          >
+            받은 코드로 들어가기
+          </Button>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (mode === "new") {
+    return (
+      <Shell>
+        <div className="flex items-center gap-2">
+          <Store className="h-4 w-4 text-blue-600" />
+          <h1 className="text-base font-extrabold tracking-tight">매장 새로 열기</h1>
+        </div>
+        <p className="mt-1.5 text-xs text-slate-400">
+          매장 이름을 정하면 여섯 글자 코드가 만들어집니다.
+        </p>
+
+        <div className="mt-6 space-y-4">
+          <Field label="매장 이름">
+            <input
+              value={storeName}
+              autoFocus
+              onChange={(event) => {
+                setStoreName(event.target.value);
+                setError("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") openNew();
+              }}
+              placeholder="예: 우리 매장 성수점"
+              className={inputClass}
+            />
+          </Field>
+
+          {error && (
+            <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600">
+              {error}
+            </p>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setMode("pick")}
+              className="h-12 flex-1 rounded-xl text-sm font-bold"
+            >
+              뒤로
+            </Button>
+            <Button
+              onClick={openNew}
+              disabled={busy}
+              className="h-12 flex-1 rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800"
+            >
+              {busy ? "만드는 중…" : "만들기"}
+            </Button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <div className="flex items-center gap-2">
+        <LogIn className="h-4 w-4 text-blue-600" />
+        <h1 className="text-base font-extrabold tracking-tight">받은 코드로 들어가기</h1>
+      </div>
+      <p className="mt-1.5 text-xs text-slate-400">
+        사장님이 알려 준 여섯 글자를 넣어 주세요.
+      </p>
+
+      <div className="mt-6 space-y-4">
+        <Field label="매장 코드">
+          <input
+            value={code}
+            autoFocus
+            maxLength={6}
+            onChange={(event) => {
+              setCode(event.target.value.toUpperCase());
+              setError("");
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") join();
+            }}
+            placeholder="ABC123"
+            className={`${inputClass} h-14 text-center text-2xl font-bold tracking-[0.3em]`}
+          />
+        </Field>
+
+        {error && (
+          <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600">
+            {error}
+          </p>
+        )}
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setMode("pick")}
+            className="h-12 flex-1 rounded-xl text-sm font-bold"
+          >
+            뒤로
+          </Button>
+          <Button
+            onClick={join}
+            disabled={busy || code.length !== 6}
+            className="h-12 flex-1 rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800"
+          >
+            {busy ? "확인 중…" : "들어가기"}
+          </Button>
+        </div>
+      </div>
+    </Shell>
+  );
 }
 
 /** 저장소를 기다리는 동안 보여 주는 화면 */

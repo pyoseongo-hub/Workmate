@@ -8,12 +8,33 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!--
+      글꼴은 화면을 막지 않게 나중에 받습니다.
+
+      그냥 rel="stylesheet" 로 걸면 브라우저가 이 파일을 다 받을 때까지
+      화면을 안 그립니다. 글꼴 서버가 느리거나 인터넷이 약하면 흰 화면이
+      오래 보입니다(느린 곳에서는 십몇 초까지 갔습니다).
+
+      media="print" 로 걸어 두면 "인쇄할 때만 쓰는 것" 으로 여겨 화면을
+      막지 않고, 다 받은 뒤(onload) media 를 all 로 바꿔 실제로 입힙니다.
+      그동안에는 기본 글꼴로 보이다가 자연스럽게 바뀝니다.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
+      />
+    </noscript>
     <title>WorkMate · 우리 매장</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script defer src="%VITE_ANALYTICS_ENDPOINT%/umami" data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
   </body>
 </html>

@@ -5,13 +5,19 @@
  * 여기 한 군데만 보면 되도록 모았습니다.
  */
 
-/** 브라우저에 저장할 때 쓰는 이름표. 겹치지 않게 여기서 관리합니다. */
-export const STORAGE_KEYS = {
-  shifts: "workmate-shifts",
-  members: "workmate-members",
-  swaps: "workmate-swaps",
-  logs: "workmate-logs",
-} as const;
+/**
+ * 앱이 다루는 자료 종류.
+ *
+ * 서버(server/store.ts)도 같은 이름을 씁니다.
+ * 한쪽만 고치면 어긋나므로 이름을 바꿀 때는 두 곳을 함께 봅니다.
+ */
+export const DATA_KEYS = ["shifts", "members", "swaps", "logs"] as const;
+export type DataKey = (typeof DATA_KEYS)[number];
+
+/** 이 브라우저에 담을 때 쓰는 이름표 (다른 앱과 겹치지 않게 앞에 workmate-) */
+export function storageKey(key: DataKey) {
+  return `workmate-${key}`;
+}
 
 /**
  * 근무 한 건.
