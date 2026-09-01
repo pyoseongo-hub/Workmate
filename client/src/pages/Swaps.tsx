@@ -25,8 +25,8 @@ import { SwapDialog } from "@/components/SwapDialog";
  *   3) 사장 승인  사장님이 승인하면            → 승인 완료
  */
 export default function Swaps() {
-  const { isOwnerMode } = useRole();
-  const { swaps, addSwap, setStatus } = useSwaps();
+  const { isOwnerMode, myName } = useRole();
+  const { swaps, addSwap, setStatus, removeSwap } = useSwaps();
   const [showDialog, setShowDialog] = useState(false);
 
   // 사장님은 "승인 대기"만, 알바생은 전체를 봅니다.
@@ -79,7 +79,9 @@ export default function Swaps() {
                   key={swap.id}
                   swap={swap}
                   isOwnerMode={isOwnerMode}
+                  myName={myName}
                   onStatusChange={setStatus}
+                  onRemove={removeSwap}
                 />
               ))}
             </div>

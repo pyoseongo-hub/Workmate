@@ -16,7 +16,7 @@ import { Pool } from "pg";
  */
 
 /** 앱이 다루는 자료 종류 */
-export const DATA_KEYS = ["shifts", "members", "swaps", "logs"] as const;
+export const DATA_KEYS = ["shifts", "members", "swaps", "logs", "notices"] as const;
 export type DataKey = (typeof DATA_KEYS)[number];
 
 export function isDataKey(value: string): value is DataKey {

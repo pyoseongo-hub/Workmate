@@ -11,7 +11,7 @@
  * 서버(server/store.ts)도 같은 이름을 씁니다.
  * 한쪽만 고치면 어긋나므로 이름을 바꿀 때는 두 곳을 함께 봅니다.
  */
-export const DATA_KEYS = ["shifts", "members", "swaps", "logs"] as const;
+export const DATA_KEYS = ["shifts", "members", "swaps", "logs", "notices"] as const;
 export type DataKey = (typeof DATA_KEYS)[number];
 
 /** 이 브라우저에 담을 때 쓰는 이름표 (다른 앱과 겹치지 않게 앞에 workmate-) */
@@ -68,6 +68,24 @@ export type SwapRow = {
   toName: string;
   reason: string;
   status: SwapStatus;
+};
+
+/**
+ * 알림 한 건 — "누가 무엇을 고쳤다" 를 남깁니다.
+ *
+ * 사장님이 매장에 없어도 무슨 일이 있었는지 알 수 있어야 합니다.
+ * 자기가 한 일은 남기지 않습니다(자기가 아니까요).
+ */
+export type Notice = {
+  id: number;
+  /** 언제 (2026-09-01T14:30 모양) */
+  at: string;
+  /** 누가 */
+  who: string;
+  /** 무엇을 했나 */
+  text: string;
+  /** 이 알림을 읽은 사람들의 이름 */
+  readBy: string[];
 };
 
 /** 근무일지 한 건 */

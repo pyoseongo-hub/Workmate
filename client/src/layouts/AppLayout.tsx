@@ -13,8 +13,9 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { NotificationCenter } from "@/components/NotificationCenter";
+import { NoticeCenter } from "@/components/NoticeCenter";
 import { useRole } from "@/contexts/RoleContext";
+import { useNotices } from "@/hooks/useNotices";
 
 /**
  * 모든 화면이 공통으로 쓰는 껍데기입니다.
@@ -50,6 +51,8 @@ export default function AppLayout({ title, description, action, children }: Prop
   const [location] = useLocation();
   const { myName, isOwner, isOwnerMode, viewAsStaff, toggleViewAsStaff, logout } =
     useRole();
+
+  const { unread } = useNotices();
 
   const [showMenu, setShowMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -144,9 +147,16 @@ export default function AppLayout({ title, description, action, children }: Prop
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative rounded-xl p-2.5 text-slate-500 hover:bg-slate-100"
-              aria-label="알림"
+              aria-label={
+                unread.length > 0 ? `알림 ${unread.length}개` : "알림"
+              }
             >
               <Bell className="h-[18px] w-[18px]" />
+              {unread.length > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                  {unread.length > 9 ? "9+" : unread.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -244,7 +254,7 @@ export default function AppLayout({ title, description, action, children }: Prop
       </div>
 
       {showNotifications && (
-        <NotificationCenter onClose={() => setShowNotifications(false)} />
+        <NoticeCenter onClose={() => setShowNotifications(false)} />
       )}
     </div>
   );

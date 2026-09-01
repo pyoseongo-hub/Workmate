@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeftRight, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
 import { useSwaps } from "@/hooks/useSwaps";
+import { useNotices } from "@/hooks/useNotices";
 import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
@@ -14,6 +15,7 @@ import {
   pad,
   personColor,
   toDateString,
+  todayString,
   type Member,
   type Shift,
 } from "@/types";
@@ -48,6 +50,23 @@ function shortTime(start: string, end: string) {
   return `${Number(start.slice(0, 2))}-${Number(end.slice(0, 2))}`;
 }
 
+/**
+ * 알림에 넣을 날짜 목록을 짧게 만듭니다.
+ * 서른 날을 다 적으면 알림이 읽기 힘들어집니다.
+ *
+ *   [3일, 5일, 7일]        → "3·5·7일을"
+ *   [3일, 5일, 7일, 9일…]  → "3·5·7일 외 2일을"
+ */
+function listDays(shifts: Shift[]) {
+  const days = shifts
+    .map((shift) => Number(shift.workDate.slice(-2)))
+    .sort((a, b) => a - b);
+
+  const head = days.slice(0, 3).join("·");
+  const rest = days.length - 3;
+  return rest > 0 ? `${head}일 외 ${rest}일을` : `${head}일을`;
+}
+
 export default function Schedule() {
   const { isOwnerMode, myName, members } = useRole();
 
@@ -56,7 +75,8 @@ export default function Schedule() {
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
   const [shifts, setShifts] = useSharedState<Shift[]>("shifts", []);
-  const { swaps, addSwap, setStatus } = useSwaps();
+  const { swaps, addSwap, setStatus, removeSwap } = useSwaps();
+  const { notify } = useNotices();
 
   /** 달력에서 고른 날짜. 안 골랐으면 null */
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -73,11 +93,31 @@ export default function Schedule() {
   const [quickStart, setQuickStart] = useState("09:00");
   const [quickEnd, setQuickEnd] = useState("18:00");
 
+  /**
+   * 등록하는 동안 임시로 담아 두는 근무 목록. 등록 중이 아니면 null.
+   *
+   * 날짜를 누를 때마다 바로 저장하면, 넣었다 뺐다 하는 과정이 전부
+   * 남습니다. 사장님에게 알림도 그때마다 갑니다.
+   * 여기에 모아 두었다가 "확인" 을 누를 때 한 번에 저장합니다.
+   */
+  const [draft, setDraft] = useState<Shift[] | null>(null);
+
+  /** 화면에 그릴 근무 — 등록 중이면 임시 목록, 아니면 저장된 것 */
+  const shownShifts = draft ?? shifts;
+
+  /** 화면 아래에 잠깐 떴다 사라지는 안내 */
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   // 직원 목록이 나중에 도착하므로, 이름이 비어 있으면 첫 직원으로 채웁니다.
   const pickName = quickName || myName || members[0]?.name || "";
 
   const monthPrefix = `${year}-${pad(month)}`;
-  const monthShifts = shifts.filter((shift) => shift.workDate.startsWith(monthPrefix));
+  const monthShifts = shownShifts.filter((shift) => shift.workDate.startsWith(monthPrefix));
 
   const goPrev = () => {
     setSelectedDate(null);
@@ -131,7 +171,28 @@ export default function Schedule() {
     setShowScheduleDialog(false);
   };
 
+  /**
+   * 이 날짜를 고칠 수 있는가 (사용자 확정 규칙).
+   *
+   *   · 사장님   → 지난 날짜까지 전부
+   *   · 알바생   → 오늘부터 앞날만
+   *
+   * 지난 근무를 알바생이 지우면 "그날 일했다" 는 사실이 사라집니다.
+   * 근무일지와 같은 규칙입니다.
+   */
+  const canEditDate = (workDate: string) => isOwnerMode || workDate >= todayString();
+
+  /**
+   * 이 근무를 지울 수 있는 사람인가.
+   *
+   * 사장님은 전부, 알바생은 앞날에 있는 자기 근무만.
+   * 넣을 수는 있는데 지울 수 없으면 잘못 넣었을 때 되돌릴 방법이 없습니다.
+   */
+  const canRemove = (shift: Shift) =>
+    isOwnerMode || (shift.person === myName && canEditDate(shift.workDate));
+
   const removeShift = (target: Shift) => {
+    if (!canRemove(target)) return;
     if (!confirm(`${formatDateLabel(target.workDate)} ${target.person} 근무를 지울까요?`)) {
       return;
     }
@@ -141,6 +202,7 @@ export default function Schedule() {
           !(shift.workDate === target.workDate && shift.person === target.person)
       )
     );
+    notify(`${formatDateLabel(target.workDate)} ${target.person} 근무를 뺐어요`);
   };
 
   /**
@@ -157,29 +219,78 @@ export default function Schedule() {
 
     if (!pickName) return;
 
-    const already = shifts.some(
+    // 지난 날짜는 사장님만 손댈 수 있습니다.
+    if (!canEditDate(workDate)) {
+      setNotice("지난 날짜는 사장님만 고칠 수 있어요.");
+      return;
+    }
+
+    const base = draft ?? shifts;
+    const already = base.some(
       (shift) => shift.workDate === workDate && shift.person === pickName
     );
 
-    if (already) {
-      setShifts(
-        shifts.filter(
-          (shift) => !(shift.workDate === workDate && shift.person === pickName)
-        )
-      );
-    } else {
-      setShifts([
-        ...shifts,
-        { workDate, person: pickName, start: quickStart, end: quickEnd },
-      ]);
-    }
+    // 저장하지 않고 임시 목록만 고칩니다. "확인" 을 눌러야 저장됩니다.
+    setDraft(
+      already
+        ? base.filter(
+            (shift) => !(shift.workDate === workDate && shift.person === pickName)
+          )
+        : [...base, { workDate, person: pickName, start: quickStart, end: quickEnd }]
+    );
   };
 
-  /** 빠른 등록을 켜고 끕니다. */
-  const toggleQuickAdd = () => {
-    setQuickAdd(!quickAdd);
+  /** 등록을 시작합니다. 지금 근무를 임시 목록으로 복사해 둡니다. */
+  const startQuickAdd = () => {
+    setDraft([...shifts]);
+    setQuickAdd(true);
     setSelectedDate(null);
   };
+
+  /** 지금까지 누른 것을 한 번에 저장하고, 무엇이 바뀌었는지 알림을 남깁니다. */
+  const confirmQuickAdd = () => {
+    if (draft) {
+      // 무엇이 늘고 줄었는지 견주어 봅니다 (알림에 날짜를 적기 위해).
+      const key = (shift: Shift) => `${shift.workDate}|${shift.person}`;
+      const before = new Set(shifts.map(key));
+      const after = new Set(draft.map(key));
+
+      const added = draft.filter((shift) => !before.has(key(shift)));
+      const removed = shifts.filter((shift) => !after.has(key(shift)));
+
+      setShifts(draft);
+
+      const parts: string[] = [];
+      if (added.length) parts.push(`${pickName} 근무 ${listDays(added)} 넣었어요`);
+      if (removed.length) parts.push(`${pickName} 근무 ${listDays(removed)} 뺐어요`);
+
+      if (parts.length) {
+        notify(parts.join(", "));
+        setNotice(
+          `${added.length ? `${added.length}일 등록` : ""}` +
+            `${added.length && removed.length ? " · " : ""}` +
+            `${removed.length ? `${removed.length}일 삭제` : ""}`
+        );
+      } else {
+        setNotice("바뀐 것이 없어요.");
+      }
+    }
+    setDraft(null);
+    setQuickAdd(false);
+  };
+
+  /** 누른 것을 버리고 원래대로 돌아갑니다. */
+  const cancelQuickAdd = () => {
+    setDraft(null);
+    setQuickAdd(false);
+    setNotice("등록을 취소했어요.");
+  };
+
+  /** 등록 중에 바뀐 곳이 몇 군데인가 (확인 버튼에 보여 줍니다) */
+  const draftChanges = draft
+    ? Math.abs(draft.length - shifts.length) ||
+      (JSON.stringify(draft) === JSON.stringify(shifts) ? 0 : 1)
+    : 0;
 
   // 고른 날짜의 근무와 교대
   const selectedShifts = selectedDate
@@ -313,23 +424,38 @@ export default function Schedule() {
                   />
                 </div>
 
-                <Button
-                  onClick={toggleQuickAdd}
-                  disabled={!pickName}
-                  className={`h-9 w-full rounded-lg text-xs font-bold ${
-                    quickAdd
-                      ? "bg-blue-600 hover:bg-blue-700"
-                      : "bg-slate-900 hover:bg-slate-800"
-                  }`}
-                >
-                  {quickAdd ? "등록 끝내기" : "＋ 이 시간으로 근무 등록"}
-                </Button>
+                {quickAdd ? (
+                  // 누르는 동안에는 저장하지 않습니다. 확인을 눌러야 담깁니다.
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={cancelQuickAdd}
+                      className="h-9 flex-1 rounded-lg bg-white text-xs font-bold"
+                    >
+                      취소
+                    </Button>
+                    <Button
+                      onClick={confirmQuickAdd}
+                      className="h-9 flex-[2] rounded-lg bg-blue-600 text-xs font-bold hover:bg-blue-700"
+                    >
+                      {draftChanges > 0 ? `확인 (${draftChanges}곳)` : "확인"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={startQuickAdd}
+                    disabled={!pickName}
+                    className="h-9 w-full rounded-lg bg-slate-900 text-xs font-bold hover:bg-slate-800"
+                  >
+                    ＋ 이 시간으로 근무 등록
+                  </Button>
+                )}
 
                 {quickAdd ? (
                   <p className="text-center text-[11px] font-semibold leading-4 text-blue-700">
-                    달력에서 날짜를 누르면 <b>{pickName}</b> 근무가 들어갑니다.
+                    달력에서 날짜를 눌러 <b>{pickName}</b> 근무를 넣고 빼세요.
                     <br />
-                    이미 있는 날을 다시 누르면 지워져요.
+                    <b>확인</b>을 눌러야 저장됩니다.
                   </p>
                 ) : (
                   members.length <= 1 && (
@@ -395,7 +521,7 @@ export default function Schedule() {
                             {shift.start}–{shift.end}
                           </p>
                         </div>
-                        {isOwnerMode && (
+                        {canRemove(shift) && (
                           <button
                             onClick={() => removeShift(shift)}
                             className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
@@ -446,7 +572,9 @@ export default function Schedule() {
                       key={swap.id}
                       swap={swap}
                       isOwnerMode={isOwnerMode}
+                      myName={myName}
                       onStatusChange={setStatus}
+                      onRemove={removeSwap}
                     />
                   ))}
                 </div>
@@ -461,6 +589,12 @@ export default function Schedule() {
           onSubmit={addRecurring}
           onClose={() => setShowScheduleDialog(false)}
         />
+      )}
+
+      {notice && (
+        <div className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900 px-5 py-3 text-xs font-semibold text-white shadow-2xl">
+          {notice}
+        </div>
       )}
 
       {showSwapDialog && (

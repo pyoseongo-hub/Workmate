@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Check, X } from "lucide-react";
+import { ArrowLeftRight, Check, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { SwapRow, SwapStatus } from "@/types";
@@ -20,13 +20,34 @@ export const STATUS_LABEL: Record<SwapStatus, { text: string; className: string 
 export function SwapCard({
   swap,
   isOwnerMode,
+  myName,
   onStatusChange,
+  onRemove,
 }: {
   swap: SwapRow;
   isOwnerMode: boolean;
+  /** 지금 들어와 있는 사람 이름 */
+  myName: string;
   onStatusChange: (id: number, status: SwapStatus) => void;
+  onRemove: (id: number) => void;
 }) {
   const status = STATUS_LABEL[swap.status];
+
+  /**
+   * 이 요청을 없앨 수 있는 사람인가.
+   *
+   * · 아직 처리 중이면 → 당사자(바꿀 사람·대신할 사람)나 사장님
+   * · 이미 끝난 것이면 → 사장님만 (기록을 정리할 때)
+   */
+  const involved = swap.fromName === myName || swap.toName === myName;
+  const inProgress =
+    swap.status === "pending_target" || swap.status === "pending_owner";
+  const canRemove = isOwnerMode || (involved && inProgress);
+
+  const remove = () => {
+    if (!confirm(`${swap.workDate} 교대 요청을 없앨까요?`)) return;
+    onRemove(swap.id);
+  };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
@@ -43,7 +64,18 @@ export function SwapCard({
           {swap.reason && <p className="mt-1 text-xs text-slate-400">{swap.reason}</p>}
         </div>
 
-        <Badge className={`shrink-0 border-0 ${status.className}`}>{status.text}</Badge>
+        <div className="flex shrink-0 items-center gap-1">
+          <Badge className={`border-0 ${status.className}`}>{status.text}</Badge>
+          {canRemove && (
+            <button
+              onClick={remove}
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+              aria-label={`${swap.workDate} 교대 요청 없애기`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 3단계: 사장님 승인·반려 */}

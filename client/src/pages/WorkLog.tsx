@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, FileClock, LockKeyhole, PenLine } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileClock,
+  LockKeyhole,
+  PenLine,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
+import { useNotices } from "@/hooks/useNotices";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
 import { pad, todayString, type LogRow } from "@/types";
 
@@ -32,6 +40,7 @@ export default function WorkLog() {
   const [month, setMonth] = useState(today.getMonth() + 1);
 
   const [logs, setLogs] = useSharedState<LogRow[]>("logs", []);
+  const { notify } = useNotices();
   const [editing, setEditing] = useState<LogRow | "new" | null>(null);
 
   const goPrev = () => {
@@ -58,12 +67,24 @@ export default function WorkLog() {
     .filter((log) => log.workDate.startsWith(monthPrefix))
     .sort((a, b) => b.workDate.localeCompare(a.workDate));
 
+  const remove = (log: LogRow) => {
+    if (!confirm(`${log.workDate} 근무일지를 지울까요?`)) return;
+    setLogs(logs.filter((item) => item.id !== log.id));
+    notify(`${log.workDate} 근무일지를 지웠어요`);
+  };
+
   const save = (form: Omit<LogRow, "id">) => {
     if (editing === "new") {
       const nextId = Math.max(0, ...logs.map((log) => log.id)) + 1;
       setLogs([...logs, { ...form, id: nextId }]);
+      notify(`${form.workDate} 근무일지를 썼어요`);
     } else if (editing) {
       setLogs(logs.map((log) => (log.id === editing.id ? { ...form, id: log.id } : log)));
+      notify(
+        isPast(form.workDate)
+          ? `지난 날짜(${form.workDate}) 근무일지를 고쳤어요`
+          : `${form.workDate} 근무일지를 고쳤어요`
+      );
     }
     setEditing(null);
   };
@@ -137,6 +158,7 @@ export default function WorkLog() {
                     locked={locked}
                     canEdit={isOwnerMode || !locked}
                     onEdit={() => setEditing(log)}
+                    onRemove={() => remove(log)}
                   />
                 );
               })}
@@ -162,11 +184,13 @@ function LogItem({
   locked,
   canEdit,
   onEdit,
+  onRemove,
 }: {
   log: LogRow;
   locked: boolean;
   canEdit: boolean;
   onEdit: () => void;
+  onRemove: () => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -191,16 +215,27 @@ function LogItem({
         {log.note && <p className="mt-1 truncate text-xs text-slate-400">{log.note}</p>}
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={!canEdit}
-        onClick={onEdit}
-        className="shrink-0 gap-1.5 rounded-xl text-xs"
-      >
-        <PenLine className="h-3.5 w-3.5" />
-        수정
-      </Button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!canEdit}
+          onClick={onEdit}
+          className="gap-1.5 rounded-xl text-xs"
+        >
+          <PenLine className="h-3.5 w-3.5" />
+          수정
+        </Button>
+        {canEdit && (
+          <button
+            onClick={onRemove}
+            className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+            aria-label={`${log.workDate} 근무일지 지우기`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
