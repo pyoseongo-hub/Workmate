@@ -7,6 +7,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
 import { useSwaps } from "@/hooks/useSwaps";
 import { useNotices } from "@/hooks/useNotices";
+import { useConfirm } from "@/hooks/useConfirm";
 import { MonthSummary } from "@/components/MonthSummary";
 import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
@@ -78,6 +79,7 @@ export default function Schedule() {
   const [shifts, setShifts] = useSharedState<Shift[]>("shifts", []);
   const { swaps, addSwap, setStatus, removeSwap } = useSwaps();
   const { notify } = useNotices();
+  const { ask, confirmDialog } = useConfirm();
 
   /** 달력에서 고른 날짜. 안 골랐으면 null */
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -192,11 +194,12 @@ export default function Schedule() {
   const canRemove = (shift: Shift) =>
     isOwnerMode || (shift.person === myName && canEditDate(shift.workDate));
 
-  const removeShift = (target: Shift) => {
+  const removeShift = async (target: Shift) => {
     if (!canRemove(target)) return;
-    if (!confirm(`${formatDateLabel(target.workDate)} ${target.person} 근무를 지울까요?`)) {
-      return;
-    }
+    const agreed = await ask(
+      `${formatDateLabel(target.workDate)} ${target.person} 근무를 지울까요?`
+    );
+    if (!agreed) return;
     setShifts(
       shifts.filter(
         (shift) =>
@@ -622,6 +625,9 @@ export default function Schedule() {
           onClose={() => setShowSwapDialog(false)}
         />
       )}
+
+      {/* "정말 지울까요?" 창. 넣어 두지 않으면 물어보질 못합니다. */}
+      {confirmDialog}
     </AppLayout>
   );
 }

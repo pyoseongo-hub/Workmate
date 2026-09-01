@@ -13,6 +13,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
 import { useSharedState } from "@/hooks/useSharedState";
 import { useNotices } from "@/hooks/useNotices";
+import { useConfirm } from "@/hooks/useConfirm";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
 import { pad, todayString, type LogRow } from "@/types";
 
@@ -41,6 +42,7 @@ export default function WorkLog() {
 
   const [logs, setLogs] = useSharedState<LogRow[]>("logs", []);
   const { notify } = useNotices();
+  const { ask, confirmDialog } = useConfirm();
   const [editing, setEditing] = useState<LogRow | "new" | null>(null);
 
   const goPrev = () => {
@@ -67,8 +69,8 @@ export default function WorkLog() {
     .filter((log) => log.workDate.startsWith(monthPrefix))
     .sort((a, b) => b.workDate.localeCompare(a.workDate));
 
-  const remove = (log: LogRow) => {
-    if (!confirm(`${log.workDate} 근무일지를 지울까요?`)) return;
+  const remove = async (log: LogRow) => {
+    if (!(await ask(`${log.workDate} 근무일지를 지울까요?`))) return;
     setLogs(logs.filter((item) => item.id !== log.id));
     notify(`${log.workDate} 근무일지를 지웠어요`);
   };
@@ -174,6 +176,8 @@ export default function WorkLog() {
           onClose={() => setEditing(null)}
         />
       )}
+
+      {confirmDialog}
     </AppLayout>
   );
 }

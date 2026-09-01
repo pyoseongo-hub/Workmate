@@ -1,6 +1,7 @@
 import { ArrowLeftRight, Check, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/hooks/useConfirm";
 import type { SwapRow, SwapStatus } from "@/types";
 
 /**
@@ -32,6 +33,7 @@ export function SwapCard({
   onRemove: (id: number) => void;
 }) {
   const status = STATUS_LABEL[swap.status];
+  const { ask, confirmDialog } = useConfirm();
 
   /**
    * 이 요청을 없앨 수 있는 사람인가.
@@ -44,8 +46,8 @@ export function SwapCard({
     swap.status === "pending_target" || swap.status === "pending_owner";
   const canRemove = isOwnerMode || (involved && inProgress);
 
-  const remove = () => {
-    if (!confirm(`${swap.workDate} 교대 요청을 없앨까요?`)) return;
+  const remove = async () => {
+    if (!(await ask(`${swap.workDate} 교대 요청을 없앨까요?`))) return;
     onRemove(swap.id);
   };
 
@@ -118,6 +120,8 @@ export function SwapCard({
           </Button>
         </div>
       )}
+
+      {confirmDialog}
     </div>
   );
 }

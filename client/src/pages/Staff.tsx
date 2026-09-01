@@ -6,6 +6,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
 import { InviteCard } from "@/components/InviteCard";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
+import { useConfirm } from "@/hooks/useConfirm";
 import type { Member } from "@/types";
 
 /**
@@ -19,6 +20,10 @@ export default function Staff() {
 
   /** 열려 있는 창: 없으면 null, 추가면 "new", 수정이면 그 직원 */
   const [editing, setEditing] = useState<Member | "new" | null>(null);
+
+  // ⚠️ 아래 "사장님 전용" 안내로 일찍 끝내는 길이 있습니다.
+  //    React 규칙상 갈라지기 전에 불러 두어야 합니다.
+  const { ask, confirmDialog } = useConfirm();
 
   // 주소창에 /staff 를 직접 쳐서 들어오는 경우를 막습니다.
   if (!isOwnerMode) {
@@ -54,8 +59,8 @@ export default function Staff() {
     setEditing(null);
   };
 
-  const remove = (member: Member) => {
-    if (!confirm(`${member.name} 직원을 삭제할까요?`)) return;
+  const remove = async (member: Member) => {
+    if (!(await ask(`${member.name} 직원을 삭제할까요?`))) return;
     setMembers(members.filter((item) => item.id !== member.id));
   };
 
@@ -154,6 +159,8 @@ export default function Staff() {
           onClose={() => setEditing(null)}
         />
       )}
+
+      {confirmDialog}
     </AppLayout>
   );
 }
