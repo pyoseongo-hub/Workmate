@@ -4,25 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
+import { useLocalState } from "@/hooks/useLocalState";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
+import { STORAGE_KEYS, type Member } from "@/types";
 
 /**
  * 직원 관리 — 매장 직원을 추가·수정·삭제하는 화면입니다. 사장님 전용.
  *
- * 지금은 이 화면 안에만 남습니다(새로고침하면 사라짐).
- * 다음 단계에서 trpc.members 로 서버에 저장하도록 바꿉니다.
+ * 등록한 직원은 브라우저에 저장되어 새로고침해도 남습니다.
+ * 다음 단계에서 서버에 저장하도록 바꿉니다.
  */
-
-type Member = {
-  id: number;
-  name: string;
-  role: "owner" | "staff";
-};
 
 export default function Staff() {
   const { isOwnerMode } = useRole();
 
-  const [members, setMembers] = useState<Member[]>([
+  const [members, setMembers] = useLocalState<Member[]>(STORAGE_KEYS.members, [
     { id: 1, name: "사장님", role: "owner" },
   ]);
 

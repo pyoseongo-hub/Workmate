@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
+import { useLocalState } from "@/hooks/useLocalState";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
+import { STORAGE_KEYS, pad, todayString, type LogRow } from "@/types";
 
 /**
  * 근무일지 — 예정 근무와 실제 출퇴근을 나눠서 기록하는 화면입니다.
@@ -13,23 +15,9 @@ import { FormDialog, Field, inputClass } from "@/components/FormDialog";
  *   · 지난 날짜 기록은 잠깁니다.
  *   · 잠긴 기록은 사장님만 수정할 수 있습니다.
  *
- * 지금은 이 화면 안에만 남습니다(새로고침하면 사라짐).
- * 다음 단계에서 trpc.workLogs 로 서버에 저장하도록 바꿉니다.
+ * 작성한 기록은 브라우저에 저장되어 새로고침해도 남습니다.
+ * 다음 단계에서 서버에 저장하도록 바꿉니다.
  */
-
-type LogRow = {
-  id: number;
-  workDate: string; // "2026-09-01"
-  planned: string; // 예정 근무 "09:00–18:00"
-  clockIn: string; // 실제 출근 "09:03"
-  clockOut: string; // 실제 퇴근 "18:02"
-  note: string;
-};
-
-/** 오늘 날짜를 "2026-09-01" 모양으로 */
-function todayString() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /** 지난 날짜인가? (오늘은 아직 잠기지 않습니다) */
 function isPast(workDate: string) {
@@ -43,7 +31,7 @@ export default function WorkLog() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [logs, setLogs] = useLocalState<LogRow[]>(STORAGE_KEYS.logs, []);
   const [editing, setEditing] = useState<LogRow | "new" | null>(null);
 
   const goPrev = () => {
@@ -65,7 +53,7 @@ export default function WorkLog() {
   };
 
   // 지금 보고 있는 달의 기록만 골라 최신순으로 보여줍니다.
-  const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
+  const monthPrefix = `${year}-${pad(month)}`;
   const visible = logs
     .filter((log) => log.workDate.startsWith(monthPrefix))
     .sort((a, b) => b.workDate.localeCompare(a.workDate));

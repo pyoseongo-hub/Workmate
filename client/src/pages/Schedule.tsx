@@ -4,21 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
+import { useLocalState } from "@/hooks/useLocalState";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
+import { STORAGE_KEYS, pad, toDateString, type Shift } from "@/types";
 
 /**
  * 근무표 — 한 달 달력에 누가 언제 일하는지 보여주는 화면입니다.
  *
- * 지금은 등록한 근무가 이 화면 안에만 남습니다(새로고침하면 사라짐).
- * 다음 단계에서 trpc.schedules 로 서버에 저장하도록 바꿉니다.
+ * 등록한 근무는 브라우저에 저장되어 새로고침해도 남습니다.
+ * 다음 단계에서 서버에 저장하도록 바꿉니다.
  */
-
-/** 달력에 그릴 근무 한 칸 */
-type Shift = {
-  day: number;
-  person: string;
-  time: string;
-};
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -26,11 +21,8 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
  * 폰 달력 칸은 폭이 50px 남짓이라 "09:00–18:00" 이 잘립니다.
  * 그래서 폰에서는 "9-18" 처럼 시(時)만 남겨 보여줍니다.
  */
-function shortTime(time: string) {
-  return time
-    .split("–")
-    .map((part) => String(Number(part.slice(0, 2))))
-    .join("-");
+function shortTime(start: string, end: string) {
+  return `${Number(start.slice(0, 2))}-${Number(end.slice(0, 2))}`;
 }
 
 export default function Schedule() {
@@ -40,7 +32,7 @@ export default function Schedule() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shifts, setShifts] = useLocalState<Shift[]>(STORAGE_KEYS.shifts, []);
   const [showDialog, setShowDialog] = useState(false);
 
   const goPrev = () => {
@@ -61,6 +53,11 @@ export default function Schedule() {
     }
   };
 
+  // 지금 보고 있는 달의 근무만 골라냅니다.
+  const monthShifts = shifts.filter((shift) =>
+    shift.workDate.startsWith(`${year}-${pad(month)}`)
+  );
+
   /**
    * 반복 근무를 이 달 달력에 펼쳐 넣습니다.
    * 예: "월·수·금 09:00–18:00" → 이 달의 모든 월·수·금에 근무를 만듭니다.
@@ -78,17 +75,32 @@ export default function Schedule() {
       const weekday = new Date(year, month - 1, day).getDay();
       if (!form.weekdays.includes(weekday)) continue;
 
+      const workDate = toDateString(year, month, day);
+
       // 같은 날 같은 사람이 이미 있으면 건너뜁니다
       const already = shifts.some(
-        (shift) => shift.day === day && shift.person === form.person
+        (shift) => shift.workDate === workDate && shift.person === form.person
       );
       if (already) continue;
 
-      added.push({ day, person: form.person, time: `${form.start}–${form.end}` });
+      added.push({ workDate, person: form.person, start: form.start, end: form.end });
     }
 
     setShifts([...shifts, ...added]);
     setShowDialog(false);
+  };
+
+  /** 근무 칸을 눌러 지웁니다. 사장님만 할 수 있습니다. */
+  const removeShift = (target: Shift) => {
+    if (!isOwnerMode) return;
+    const label = `${target.workDate} ${target.person}`;
+    if (!confirm(`${label} 근무를 지울까요?`)) return;
+    setShifts(
+      shifts.filter(
+        (shift) =>
+          !(shift.workDate === target.workDate && shift.person === target.person)
+      )
+    );
   };
 
   return (
@@ -114,7 +126,7 @@ export default function Schedule() {
               {year}년 {month}월
             </CardTitle>
             <p className="mt-1 text-xs text-slate-400">
-              {isOwnerMode ? "전체 직원 근무" : "내 근무일과 확정 교대"}
+              {isOwnerMode ? "근무를 누르면 지울 수 있어요" : "내 근무일과 확정 교대"}
             </p>
           </div>
 
@@ -141,7 +153,12 @@ export default function Schedule() {
         </CardHeader>
 
         <CardContent className="p-3 sm:p-7">
-          <CalendarGrid year={year} month={month} shifts={shifts} />
+          <CalendarGrid
+            year={year}
+            month={month}
+            shifts={monthShifts}
+            onShiftClick={removeShift}
+          />
         </CardContent>
       </Card>
 
@@ -162,10 +179,12 @@ function CalendarGrid({
   year,
   month,
   shifts,
+  onShiftClick,
 }: {
   year: number;
   month: number;
   shifts: Shift[];
+  onShiftClick: (shift: Shift) => void;
 }) {
   const firstWeekday = new Date(year, month - 1, 1).getDay();
   const lastDay = new Date(year, month, 0).getDate();
@@ -198,12 +217,13 @@ function CalendarGrid({
             }
 
             const isToday = new Date(year, month - 1, day).toDateString() === todayStr;
-            const dayShifts = shifts.filter((item) => item.day === day);
+            const workDate = toDateString(year, month, day);
+            const dayShifts = shifts.filter((shift) => shift.workDate === workDate);
 
             return (
               <div
                 key={day}
-                className="min-h-[62px] bg-white p-1 transition-colors hover:bg-slate-50 sm:min-h-[108px] sm:p-2.5"
+                className="min-h-[62px] bg-white p-1 sm:min-h-[108px] sm:p-2.5"
               >
                 <span
                   className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold sm:h-6 sm:w-6 sm:text-xs ${
@@ -214,16 +234,21 @@ function CalendarGrid({
                 </span>
 
                 {dayShifts.map((shift, i) => (
-                  <div
+                  <button
                     key={i}
-                    className="mt-1 rounded-md border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] leading-tight text-blue-800 sm:mt-2 sm:rounded-xl sm:px-2 sm:py-2 sm:text-[11px]"
+                    onClick={() => onShiftClick(shift)}
+                    className="mt-1 block w-full rounded-md border border-blue-200 bg-blue-50 px-1 py-0.5 text-left text-[9px] leading-tight text-blue-800 transition hover:bg-blue-100 sm:mt-2 sm:rounded-xl sm:px-2 sm:py-2 sm:text-[11px]"
                   >
                     <div className="truncate font-bold">{shift.person}</div>
                     <div className="mt-0.5 truncate opacity-75 sm:mt-1">
-                      <span className="sm:hidden">{shortTime(shift.time)}</span>
-                      <span className="hidden sm:inline">{shift.time}</span>
+                      <span className="sm:hidden">
+                        {shortTime(shift.start, shift.end)}
+                      </span>
+                      <span className="hidden sm:inline">
+                        {shift.start}–{shift.end}
+                      </span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             );
@@ -232,7 +257,7 @@ function CalendarGrid({
 
         {shifts.length === 0 && (
           <p className="mt-5 text-center text-xs text-slate-400">
-            아직 등록된 근무가 없습니다.
+            이 달에는 아직 등록된 근무가 없습니다.
           </p>
         )}
       </div>

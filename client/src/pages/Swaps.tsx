@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
+import { useLocalState } from "@/hooks/useLocalState";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
+import { STORAGE_KEYS, type SwapRow, type SwapStatus } from "@/types";
 
 /**
  * 교대 관리 — 근무를 바꾸는 요청을 다루는 화면입니다.
@@ -19,22 +21,9 @@ import { FormDialog, Field, inputClass } from "@/components/FormDialog";
  *   2) 상대 확인  상대가 수락하면              → 사장님 승인 대기
  *   3) 사장 승인  사장님이 승인하면            → 승인 완료
  *
- * 지금은 이 화면 안에만 남습니다(새로고침하면 사라짐).
- * 다음 단계에서 trpc.swaps 로 서버에 저장하도록 바꿉니다.
+ * 신청한 교대는 브라우저에 저장되어 새로고침해도 남습니다.
+ * 다음 단계에서 서버에 저장하도록 바꿉니다.
  */
-
-type SwapStatus = "pending_target" | "pending_owner" | "approved" | "rejected";
-
-type SwapRow = {
-  id: number;
-  workDate: string;
-  start: string;
-  end: string;
-  fromName: string;
-  toName: string;
-  reason: string;
-  status: SwapStatus;
-};
 
 const STATUS_LABEL: Record<SwapStatus, { text: string; className: string }> = {
   pending_target: { text: "상대 확인 대기", className: "bg-slate-100 text-slate-700" },
@@ -46,7 +35,7 @@ const STATUS_LABEL: Record<SwapStatus, { text: string; className: string }> = {
 export default function Swaps() {
   const { isOwnerMode } = useRole();
 
-  const [swaps, setSwaps] = useState<SwapRow[]>([]);
+  const [swaps, setSwaps] = useLocalState<SwapRow[]>(STORAGE_KEYS.swaps, []);
   const [showDialog, setShowDialog] = useState(false);
 
   // 사장님은 "승인 대기"만, 알바생은 전체를 봅니다.
