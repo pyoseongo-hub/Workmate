@@ -33,6 +33,10 @@ type RoleValue = {
   enterOwnerMode: (pin: string) => boolean;
   /** 알바생 모드로 돌아갑니다 */
   exitOwnerMode: () => void;
+  /** 이 기기를 쓰는 사람의 이름. 아직 안 골랐으면 빈 글자 */
+  myName: string;
+  /** 내 이름을 정합니다 */
+  setMyName: (name: string) => void;
 };
 
 const RoleContext = createContext<RoleValue | null>(null);
@@ -46,12 +50,31 @@ const RoleContext = createContext<RoleValue | null>(null);
  */
 const OWNER_MODE_KEY = "workmate-owner-mode";
 
+/**
+ * 이 기기를 쓰는 사람의 이름을 담아 두는 열쇠입니다.
+ *
+ * 사장님 모드와 달리 localStorage 를 씁니다.
+ *   · 앱을 껐다 켜도 "나는 서연" 이 그대로 남아야 편합니다.
+ *   · 근무를 넣을 때마다 이름을 다시 고르지 않아도 됩니다.
+ *
+ * 이 값은 이 기기에만 남습니다. 다른 사람 폰에는 그 사람 이름이 남습니다.
+ */
+const MY_NAME_KEY = "workmate-my-name";
+
 /** sessionStorage 는 브라우저 설정에 따라 막힐 수 있어 try 로 감쌉니다. */
 function readSavedOwnerMode() {
   try {
     return sessionStorage.getItem(OWNER_MODE_KEY) === "1";
   } catch {
     return false;
+  }
+}
+
+function readSavedMyName() {
+  try {
+    return localStorage.getItem(MY_NAME_KEY) ?? "";
+  } catch {
+    return "";
   }
 }
 
@@ -77,9 +100,26 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     } catch {}
   };
 
+  const [myName, setMyNameState] = useState(readSavedMyName);
+
+  const setMyName = (name: string) => {
+    setMyNameState(name);
+    try {
+      if (name) localStorage.setItem(MY_NAME_KEY, name);
+      else localStorage.removeItem(MY_NAME_KEY);
+    } catch {}
+  };
+
   return (
     <RoleContext.Provider
-      value={{ isOwnerAccount, isOwnerMode, enterOwnerMode, exitOwnerMode }}
+      value={{
+        isOwnerAccount,
+        isOwnerMode,
+        enterOwnerMode,
+        exitOwnerMode,
+        myName,
+        setMyName,
+      }}
     >
       {children}
     </RoleContext.Provider>

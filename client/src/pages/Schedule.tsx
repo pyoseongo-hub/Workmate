@@ -9,7 +9,7 @@ import { useSwaps } from "@/hooks/useSwaps";
 import { SwapCard } from "@/components/SwapCard";
 import { SwapDialog } from "@/components/SwapDialog";
 import { FormDialog, Field, inputClass } from "@/components/FormDialog";
-import { STORAGE_KEYS, pad, toDateString, type Shift } from "@/types";
+import { STORAGE_KEYS, pad, toDateString, type Member, type Shift } from "@/types";
 
 /**
  * 근무표 — 달력을 보면서 교대까지 처리하는 화면입니다.
@@ -42,19 +42,35 @@ function shortTime(start: string, end: string) {
 }
 
 export default function Schedule() {
-  const { isOwnerMode } = useRole();
+  const { isOwnerMode, myName, setMyName } = useRole();
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
   const [shifts, setShifts] = useSharedState<Shift[]>(STORAGE_KEYS.shifts, []);
+  const [members] = useSharedState<Member[]>(STORAGE_KEYS.members, [
+    { id: 1, name: "사장님", role: "owner" },
+  ]);
   const { swaps, addSwap, setStatus } = useSwaps();
 
   /** 달력에서 고른 날짜. 안 골랐으면 null */
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showSwapDialog, setShowSwapDialog] = useState(false);
+
+  /**
+   * 빠른 등록 — 30일치를 하나씩 창을 열어 넣으면 너무 번거롭습니다.
+   * 이름과 시간을 한 번 정해 두고 켜면, 그 뒤로는 날짜를 누를 때마다
+   * 바로 등록됩니다. 이미 있는 날을 다시 누르면 지워집니다.
+   */
+  const [quickAdd, setQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState(myName);
+  const [quickStart, setQuickStart] = useState("09:00");
+  const [quickEnd, setQuickEnd] = useState("18:00");
+
+  // 직원 목록이 나중에 도착하므로, 이름이 비어 있으면 첫 직원으로 채웁니다.
+  const pickName = quickName || myName || members[0]?.name || "";
 
   const monthPrefix = `${year}-${pad(month)}`;
   const monthShifts = shifts.filter((shift) => shift.workDate.startsWith(monthPrefix));
@@ -121,6 +137,45 @@ export default function Schedule() {
           !(shift.workDate === target.workDate && shift.person === target.person)
       )
     );
+  };
+
+  /**
+   * 달력 칸을 눌렀을 때.
+   *
+   * 빠른 등록이 꺼져 있으면 → 그 날짜를 골라 아래에 자세히 보여 줍니다.
+   * 켜져 있으면 → 고른 이름으로 그 날 근무를 넣고, 이미 있으면 지웁니다.
+   */
+  const handleDateClick = (workDate: string) => {
+    if (!quickAdd) {
+      setSelectedDate(workDate === selectedDate ? null : workDate);
+      return;
+    }
+
+    if (!pickName) return;
+
+    const already = shifts.some(
+      (shift) => shift.workDate === workDate && shift.person === pickName
+    );
+
+    if (already) {
+      setShifts(
+        shifts.filter(
+          (shift) => !(shift.workDate === workDate && shift.person === pickName)
+        )
+      );
+    } else {
+      setShifts([
+        ...shifts,
+        { workDate, person: pickName, start: quickStart, end: quickEnd },
+      ]);
+    }
+  };
+
+  /** 빠른 등록을 켜고 끕니다. 켤 때 고른 이름을 "내 이름"으로 기억합니다. */
+  const toggleQuickAdd = () => {
+    if (!quickAdd && pickName) setMyName(pickName);
+    setQuickAdd(!quickAdd);
+    setSelectedDate(null);
   };
 
   // 고른 날짜의 근무와 교대
@@ -214,13 +269,83 @@ export default function Schedule() {
             </CardHeader>
 
             <CardContent className="p-3 sm:p-5">
+              {/* 빠른 등록 — 이름과 시간을 정해 두고 날짜를 눌러 넣습니다 */}
+              <div
+                className={`mb-3 space-y-2 rounded-2xl border p-2.5 transition ${
+                  quickAdd
+                    ? "border-blue-300 bg-blue-50"
+                    : "border-slate-200 bg-slate-50"
+                }`}
+              >
+                {/* 폰에서는 이름과 시간을 한 줄에 넣으면 시간칸이 잘려
+                    ":00 오전" 처럼만 보입니다. 그래서 줄을 나눕니다. */}
+                <select
+                  value={pickName}
+                  onChange={(event) => setQuickName(event.target.value)}
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-blue-500"
+                  aria-label="근무자"
+                >
+                  {members.map((member) => (
+                    <option key={member.id} value={member.name}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={quickStart}
+                    onChange={(event) => setQuickStart(event.target.value)}
+                    aria-label="시작 시간"
+                    className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm outline-none focus:border-blue-500"
+                  />
+                  <span className="shrink-0 text-xs text-slate-400">~</span>
+                  <input
+                    type="time"
+                    value={quickEnd}
+                    onChange={(event) => setQuickEnd(event.target.value)}
+                    aria-label="종료 시간"
+                    className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <Button
+                  onClick={toggleQuickAdd}
+                  disabled={!pickName}
+                  className={`h-9 w-full rounded-lg text-xs font-bold ${
+                    quickAdd
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-slate-900 hover:bg-slate-800"
+                  }`}
+                >
+                  {quickAdd ? "등록 끝내기" : "＋ 이 시간으로 근무 등록"}
+                </Button>
+
+                {quickAdd ? (
+                  <p className="text-center text-[11px] font-semibold leading-4 text-blue-700">
+                    달력에서 날짜를 누르면 <b>{pickName}</b> 근무가 들어갑니다.
+                    <br />
+                    이미 있는 날을 다시 누르면 지워져요.
+                  </p>
+                ) : (
+                  members.length <= 1 && (
+                    <p className="text-center text-[11px] leading-4 text-amber-700">
+                      직원 관리에서 직원을 먼저 등록하면 여기서 고를 수 있어요.
+                    </p>
+                  )
+                )}
+              </div>
+
               <CalendarGrid
                 year={year}
                 month={month}
                 shifts={monthShifts}
                 swaps={swaps}
                 selectedDate={selectedDate}
-                onSelect={(date) => setSelectedDate(date === selectedDate ? null : date)}
+                quickAdd={quickAdd}
+                quickName={pickName}
+                onSelect={handleDateClick}
               />
             </CardContent>
           </Card>
@@ -365,6 +490,8 @@ function CalendarGrid({
   shifts,
   swaps,
   selectedDate,
+  quickAdd,
+  quickName,
   onSelect,
 }: {
   year: number;
@@ -372,6 +499,10 @@ function CalendarGrid({
   shifts: Shift[];
   swaps: ReturnType<typeof useSwaps>["swaps"];
   selectedDate: string | null;
+  /** 빠른 등록이 켜져 있는가 */
+  quickAdd: boolean;
+  /** 빠른 등록으로 넣을 사람 이름 */
+  quickName: string;
   onSelect: (date: string) => void;
 }) {
   const firstWeekday = new Date(year, month - 1, 1).getDay();
@@ -416,22 +547,32 @@ function CalendarGrid({
                 (swap.status === "pending_target" || swap.status === "pending_owner")
             );
 
+            // 빠른 등록 중에는 "고른 사람이 이 날 이미 있는지"가 중요합니다.
+            const hasMine = dayShifts.some((shift) => shift.person === quickName);
+
             // 화면을 읽어 주는 기기(스크린리더)와 검사 도구가 칸을 알아볼 수 있게
             // 이름을 붙입니다. 칸 안의 글씨는 너무 짧아 그것만으로는 알기 어렵습니다.
             const shiftNames = dayShifts.map((shift) => shift.person).join(", ");
-            const label =
-              `${month}월 ${day}일` +
-              (shiftNames ? `, 근무 ${shiftNames}` : ", 근무 없음") +
-              (hasPendingSwap ? ", 처리 중인 교대 있음" : "");
+            const label = quickAdd
+              ? `${month}월 ${day}일, ${quickName} 근무 ${hasMine ? "지우기" : "넣기"}`
+              : `${month}월 ${day}일` +
+                (shiftNames ? `, 근무 ${shiftNames}` : ", 근무 없음") +
+                (hasPendingSwap ? ", 처리 중인 교대 있음" : "");
 
             return (
               <button
                 key={day}
                 onClick={() => onSelect(workDate)}
                 aria-label={label}
-                aria-pressed={isSelected}
+                aria-pressed={quickAdd ? hasMine : isSelected}
                 className={`min-h-[62px] p-1 text-left transition sm:min-h-[92px] sm:p-2 ${
-                  isSelected ? "bg-blue-50 ring-2 ring-inset ring-blue-500" : "bg-white hover:bg-slate-50"
+                  quickAdd
+                    ? hasMine
+                      ? "bg-blue-50 ring-1 ring-inset ring-blue-400"
+                      : "bg-white hover:bg-blue-50/70"
+                    : isSelected
+                      ? "bg-blue-50 ring-2 ring-inset ring-blue-500"
+                      : "bg-white hover:bg-slate-50"
                 }`}
               >
                 <div className="flex items-center justify-between">
