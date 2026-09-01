@@ -85,16 +85,18 @@ export default function AppLayout({ title, description, action, children }: Prop
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* 역할 배지 — 누르면 모드가 바뀝니다 */}
+          <div className="flex items-center gap-1 sm:gap-3">
+            {/* 역할 배지 — 누르면 모드가 바뀝니다.
+                폰에서도 보여야 합니다. 예전에는 hidden 이라 폰에서 모드를 못 바꿨습니다. */}
             <button
               onClick={() => (isOwnerMode ? exitOwnerMode() : setShowPinDialog(true))}
-              className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 sm:flex"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs"
             >
               <span
-                className={`h-2 w-2 rounded-full ${isOwnerMode ? "bg-amber-500" : "bg-emerald-500"}`}
+                className={`h-2 w-2 shrink-0 rounded-full ${isOwnerMode ? "bg-amber-500" : "bg-emerald-500"}`}
               />
-              {isOwnerMode ? "사장님 모드" : "알바생 모드"}
+              {isOwnerMode ? "사장님" : "알바생"}
+              <span className="hidden sm:inline">모드</span>
             </button>
 
             <button
@@ -108,10 +110,19 @@ export default function AppLayout({ title, description, action, children }: Prop
         </div>
       </header>
 
+      {/* 폰에서 메뉴를 열면 뒤를 어둡게 덮습니다. 눌러서 닫을 수 있습니다. */}
+      {showMenu && (
+        <div
+          onClick={() => setShowMenu(false)}
+          className="fixed inset-0 top-[72px] z-10 bg-slate-950/30 lg:hidden"
+          aria-hidden
+        />
+      )}
+
       <div className="mx-auto flex max-w-[1440px]">
         {/* ───────────────── 사이드바 ───────────────── */}
         <aside
-          className={`${showMenu ? "flex" : "hidden"} fixed inset-y-[72px] left-0 z-20 w-[250px] flex-col border-r border-slate-200 bg-white p-5 lg:sticky lg:top-[72px] lg:flex lg:h-[calc(100vh-72px)] lg:shrink-0`}
+          className={`${showMenu ? "flex" : "hidden"} fixed inset-y-[72px] left-0 z-20 w-[250px] flex-col overflow-y-auto border-r border-slate-200 bg-white p-5 lg:sticky lg:top-[72px] lg:flex lg:h-[calc(100vh-72px)] lg:shrink-0`}
         >
           <nav className="space-y-1">
             {MENU.map((item) => {
@@ -124,7 +135,10 @@ export default function AppLayout({ title, description, action, children }: Prop
                 return (
                   <button
                     key={item.path}
-                    onClick={() => setShowPinDialog(true)}
+                    onClick={() => {
+                      setShowMenu(false); // 메뉴를 먼저 닫아야 비밀번호 창이 가려지지 않습니다
+                      setShowPinDialog(true);
+                    }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-400 hover:bg-slate-50"
                   >
                     <Icon className="h-[17px] w-[17px]" />

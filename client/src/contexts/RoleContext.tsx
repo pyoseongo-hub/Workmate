@@ -37,19 +37,45 @@ type RoleValue = {
 
 const RoleContext = createContext<RoleValue | null>(null);
 
+/**
+ * 사장님 모드를 브라우저 탭에 기억시키는 열쇠 이름입니다.
+ *
+ * sessionStorage 를 쓰는 이유:
+ *   · 새로고침해도 모드가 풀리지 않습니다(매번 비밀번호를 넣지 않아도 됨).
+ *   · 탭을 닫으면 자동으로 풀립니다(공용 기기에서 남지 않음).
+ */
+const OWNER_MODE_KEY = "workmate-owner-mode";
+
+/** sessionStorage 는 브라우저 설정에 따라 막힐 수 있어 try 로 감쌉니다. */
+function readSavedOwnerMode() {
+  try {
+    return sessionStorage.getItem(OWNER_MODE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [isOwnerMode, setIsOwnerMode] = useState(false);
+  const [isOwnerMode, setIsOwnerMode] = useState(readSavedOwnerMode);
 
   const isOwnerAccount = user?.role === "admin";
 
   const enterOwnerMode = (pin: string) => {
     if (pin !== OWNER_PIN) return false;
     setIsOwnerMode(true);
+    try {
+      sessionStorage.setItem(OWNER_MODE_KEY, "1");
+    } catch {}
     return true;
   };
 
-  const exitOwnerMode = () => setIsOwnerMode(false);
+  const exitOwnerMode = () => {
+    setIsOwnerMode(false);
+    try {
+      sessionStorage.removeItem(OWNER_MODE_KEY);
+    } catch {}
+  };
 
   return (
     <RoleContext.Provider

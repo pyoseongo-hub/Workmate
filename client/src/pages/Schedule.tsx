@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/layouts/AppLayout";
 import { useRole } from "@/contexts/RoleContext";
+import { FormDialog, Field, inputClass } from "@/components/FormDialog";
 
 /**
  * 근무표 — 한 달 달력에 누가 언제 일하는지 보여주는 화면입니다.
  *
- * TODO(2단계): trpc.schedules.list 로 실제 근무를 불러옵니다.
- * TODO(2단계): "근무일자 등록" 버튼에 trpc.schedules.recurringAdd 를 연결합니다.
+ * 지금은 등록한 근무가 이 화면 안에만 남습니다(새로고침하면 사라짐).
+ * 다음 단계에서 trpc.schedules 로 서버에 저장하도록 바꿉니다.
  */
 
 /** 달력에 그릴 근무 한 칸 */
@@ -19,16 +20,28 @@ type Shift = {
   time: string;
 };
 
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/**
+ * 폰 달력 칸은 폭이 50px 남짓이라 "09:00–18:00" 이 잘립니다.
+ * 그래서 폰에서는 "9-18" 처럼 시(時)만 남겨 보여줍니다.
+ */
+function shortTime(time: string) {
+  return time
+    .split("–")
+    .map((part) => String(Number(part.slice(0, 2))))
+    .join("-");
+}
+
 export default function Schedule() {
   const { isOwnerMode } = useRole();
 
-  // 지금 보고 있는 연·월
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1~12
 
-  // 아직 연결 전이라 빈 배열입니다. 2단계에서 서버 데이터가 들어옵니다.
-  const shifts: Shift[] = [];
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [showDialog, setShowDialog] = useState(false);
 
   const goPrev = () => {
     if (month === 1) {
@@ -48,13 +61,46 @@ export default function Schedule() {
     }
   };
 
+  /**
+   * 반복 근무를 이 달 달력에 펼쳐 넣습니다.
+   * 예: "월·수·금 09:00–18:00" → 이 달의 모든 월·수·금에 근무를 만듭니다.
+   */
+  const addRecurring = (form: {
+    person: string;
+    weekdays: number[];
+    start: string;
+    end: string;
+  }) => {
+    const lastDay = new Date(year, month, 0).getDate();
+    const added: Shift[] = [];
+
+    for (let day = 1; day <= lastDay; day += 1) {
+      const weekday = new Date(year, month - 1, day).getDay();
+      if (!form.weekdays.includes(weekday)) continue;
+
+      // 같은 날 같은 사람이 이미 있으면 건너뜁니다
+      const already = shifts.some(
+        (shift) => shift.day === day && shift.person === form.person
+      );
+      if (already) continue;
+
+      added.push({ day, person: form.person, time: `${form.start}–${form.end}` });
+    }
+
+    setShifts([...shifts, ...added]);
+    setShowDialog(false);
+  };
+
   return (
     <AppLayout
       title="근무표"
       description="기본 근무일자와 확정된 교대 내용을 한눈에 확인하세요."
       action={
         isOwnerMode && (
-          <Button className="h-10 gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold hover:bg-slate-800">
+          <Button
+            onClick={() => setShowDialog(true)}
+            className="h-10 gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold hover:bg-slate-800"
+          >
             <Plus className="h-4 w-4" />
             근무일자 등록
           </Button>
@@ -98,6 +144,10 @@ export default function Schedule() {
           <CalendarGrid year={year} month={month} shifts={shifts} />
         </CardContent>
       </Card>
+
+      {showDialog && (
+        <ScheduleDialog onSubmit={addRecurring} onClose={() => setShowDialog(false)} />
+      )}
     </AppLayout>
   );
 }
@@ -105,8 +155,8 @@ export default function Schedule() {
 /**
  * 달력 그리드.
  *
- * 지난 코드는 무조건 35칸을 그렸는데, 그러면 달마다 날짜가 어긋납니다.
- * 여기서는 그 달의 1일이 무슨 요일인지 계산해서 앞을 비웁니다.
+ * 그 달 1일이 무슨 요일인지 계산해서 앞을 비웁니다.
+ * 폰에서는 7칸이 화면에 딱 들어가야 하므로 min-w-full 을 씁니다.
  */
 function CalendarGrid({
   year,
@@ -117,14 +167,9 @@ function CalendarGrid({
   month: number;
   shifts: Shift[];
 }) {
-  const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-  // 이 달 1일의 요일 (0=일요일)
   const firstWeekday = new Date(year, month - 1, 1).getDay();
-  // 이 달의 마지막 날짜 (28~31)
   const lastDay = new Date(year, month, 0).getDate();
 
-  // 앞쪽 빈 칸 + 실제 날짜
   const cells: (number | null)[] = [
     ...Array<null>(firstWeekday).fill(null),
     ...Array.from({ length: lastDay }, (_, i) => i + 1),
@@ -132,8 +177,6 @@ function CalendarGrid({
 
   const todayStr = new Date().toDateString();
 
-  // 폰에서는 7칸이 화면 안에 딱 들어가야 합니다(min-w-full).
-  // 예전 코드는 min-w-[680px] 로 고정해서, 폰에서 수·목·금·토가 잘렸습니다.
   return (
     <div className="overflow-x-auto">
       <div className="min-w-full sm:min-w-[680px]">
@@ -155,7 +198,7 @@ function CalendarGrid({
             }
 
             const isToday = new Date(year, month - 1, day).toDateString() === todayStr;
-            const shift = shifts.find((item) => item.day === day);
+            const dayShifts = shifts.filter((item) => item.day === day);
 
             return (
               <div
@@ -170,12 +213,18 @@ function CalendarGrid({
                   {day}
                 </span>
 
-                {shift && (
-                  <div className="mt-1 rounded-md border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] leading-tight text-blue-800 sm:mt-2 sm:rounded-xl sm:px-2 sm:py-2 sm:text-[11px]">
+                {dayShifts.map((shift, i) => (
+                  <div
+                    key={i}
+                    className="mt-1 rounded-md border border-blue-200 bg-blue-50 px-1 py-0.5 text-[9px] leading-tight text-blue-800 sm:mt-2 sm:rounded-xl sm:px-2 sm:py-2 sm:text-[11px]"
+                  >
                     <div className="truncate font-bold">{shift.person}</div>
-                    <div className="mt-0.5 truncate opacity-75 sm:mt-1">{shift.time}</div>
+                    <div className="mt-0.5 truncate opacity-75 sm:mt-1">
+                      <span className="sm:hidden">{shortTime(shift.time)}</span>
+                      <span className="hidden sm:inline">{shift.time}</span>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             );
           })}
@@ -183,10 +232,120 @@ function CalendarGrid({
 
         {shifts.length === 0 && (
           <p className="mt-5 text-center text-xs text-slate-400">
-            아직 등록된 근무가 없습니다. (2단계에서 서버와 연결할 예정입니다)
+            아직 등록된 근무가 없습니다.
           </p>
         )}
       </div>
     </div>
+  );
+}
+
+/** 근무일자 등록 창 */
+function ScheduleDialog({
+  onSubmit,
+  onClose,
+}: {
+  onSubmit: (form: {
+    person: string;
+    weekdays: number[];
+    start: string;
+    end: string;
+  }) => void;
+  onClose: () => void;
+}) {
+  const [person, setPerson] = useState("");
+  const [weekdays, setWeekdays] = useState<number[]>([]);
+  const [start, setStart] = useState("09:00");
+  const [end, setEnd] = useState("18:00");
+  const [error, setError] = useState("");
+
+  const toggleWeekday = (index: number) => {
+    setError("");
+    setWeekdays(
+      weekdays.includes(index)
+        ? weekdays.filter((value) => value !== index)
+        : [...weekdays, index]
+    );
+  };
+
+  const submit = () => {
+    if (!person.trim()) {
+      setError("직원 이름을 적어 주세요.");
+      return;
+    }
+    if (weekdays.length === 0) {
+      setError("반복할 요일을 하나 이상 골라 주세요.");
+      return;
+    }
+    if (start >= end) {
+      setError("종료 시간이 시작 시간보다 늦어야 합니다.");
+      return;
+    }
+    onSubmit({ person: person.trim(), weekdays, start, end });
+  };
+
+  return (
+    <FormDialog
+      title="근무일자 등록"
+      description="반복되는 근무를 등록하면 이 달 달력에 한 번에 채워집니다."
+      error={error}
+      onSubmit={submit}
+      onClose={onClose}
+    >
+      <Field label="직원 이름">
+        <input
+          value={person}
+          autoFocus
+          onChange={(event) => {
+            setPerson(event.target.value);
+            setError("");
+          }}
+          placeholder="예: 서연"
+          className={inputClass}
+        />
+      </Field>
+
+      <div>
+        <span className="text-xs font-bold text-slate-600">반복 요일</span>
+        <div className="mt-2 flex gap-1.5">
+          {WEEKDAYS.map((label, index) => {
+            const selected = weekdays.includes(index);
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => toggleWeekday(index)}
+                className={`h-10 flex-1 rounded-xl text-sm font-bold transition ${
+                  selected
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="시작">
+          <input
+            type="time"
+            value={start}
+            onChange={(event) => setStart(event.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="종료">
+          <input
+            type="time"
+            value={end}
+            onChange={(event) => setEnd(event.target.value)}
+            className={inputClass}
+          />
+        </Field>
+      </div>
+    </FormDialog>
   );
 }
