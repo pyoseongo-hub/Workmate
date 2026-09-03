@@ -114,19 +114,16 @@
     background: var(--line); border: 1px solid var(--line);
     border-radius: 1rem; overflow: hidden; margin-bottom: 3rem;
   }
-  @media (min-width: 34rem) { .scope { grid-template-columns: 1fr 1fr; } }
-
-  .scope > div { background: var(--paper); padding: 1.15rem 1.25rem; }
+  .scope > div { background: var(--paper); padding: 1.25rem 1.35rem; }
   .scope h3 {
     margin: 0 0 .65rem; font-size: .78rem; font-weight: 700;
     letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent);
   }
-  .scope .yes h3 { color: var(--accent); }
-  .scope .no  h3 { color: var(--muted); }
   .scope ul { margin: 0; padding-left: 1.05rem; }
   .scope li { margin-bottom: .3rem; }
+  .scope li:last-child { margin-bottom: 0; }
   .scope li::marker { color: var(--line-2); }
-  .scope .no li { color: var(--muted); }
 
   /* ── 갈래 (사장님 / 알바생) ───────────────────────────────────── */
   .track { margin-bottom: 3.25rem; }
@@ -305,21 +302,9 @@
         <li>누가 며칠 몇 시에 나오는지 달력에 적기</li>
         <li>알바생끼리 교대 바꾸기 · 사장님이 승인하기</li>
         <li>실제 출퇴근 시각을 근무일지에 남기기</li>
-        <li>이 달 사람마다 <b>며칠 · 몇 시간</b> 셈해 주기</li>
+        <li>이 달 사람마다 <b>며칠 · 몇 시간</b> 세어 주기</li>
         <li>누가 무엇을 고쳤는지 사장님께 알려 주기</li>
       </ul>
-    </div>
-    <div class="no">
-      <h3>이 앱이 안 하는 일</h3>
-      <ul>
-        <li>급여를 셈하지 않습니다</li>
-        <li>휴게시간을 빼지 않습니다</li>
-        <li>주휴수당·야간수당을 붙이지 않습니다</li>
-        <li>근로계약서를 만들지 않습니다</li>
-      </ul>
-      <p style="margin:.6rem 0 0;font-size:.87rem">
-        시간을 정확히 세는 데까지만 합니다. 셈법은 매장마다 달라서 사장님 몫입니다.
-      </p>
     </div>
   </div>
 
@@ -424,7 +409,6 @@
           </div>
           <p style="margin-top:.6rem">
             시작 시각부터 끝난 시각까지를 그대로 센 숫자입니다.
-            여기서 쉬는 시간을 빼거나 급여를 셈하지는 않습니다.
           </p>
         </div>
       </li>
@@ -546,14 +530,6 @@
         </div>
       </details>
 
-      <details>
-        <summary>급여는 어디서 보나요</summary>
-        <div class="ans">
-          <p>이 앱은 급여를 셈하지 않습니다. <b>며칠 · 몇 시간</b>까지만 보여 드립니다.</p>
-          <p>휴게시간을 어떻게 볼지, 수당을 어떻게 붙일지는 매장마다 다릅니다. 그 숫자를 가지고 사장님이 판단하시면 됩니다.</p>
-        </div>
-      </details>
-
     </div>
   </section>
 
@@ -565,7 +541,6 @@
       <ul>
         <li><b>매장 코드를 아는 사람은 그 매장 근무표를 봅니다.</b> 서로 아는 사람끼리 쓰는 것을 전제로 만들었습니다. 모르는 사람에게 링크가 새지 않게 해 주세요.</li>
         <li><b>4자리 번호는 은행 비밀번호 같은 수준이 아닙니다.</b> "남의 이름으로 잘못 들어가는 것"을 막는 정도로 봐 주세요.</li>
-        <li><b>근로계약서·급여명세서를 대신하지 않습니다.</b> 법으로 남겨야 하는 서류는 따로 챙기셔야 합니다.</li>
       </ul>
     </div>
   </section>
