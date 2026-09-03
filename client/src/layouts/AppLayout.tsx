@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Bell,
+  BookOpen,
   CalendarDays,
   Eye,
   FileClock,
@@ -35,6 +36,8 @@ const MENU = [
   { path: "/worklog", label: "근무일지", icon: FileClock, ownerOnly: false },
   { path: "/swaps", label: "교대 관리", icon: UsersRound, ownerOnly: false },
   { path: "/staff", label: "직원 관리", icon: UserRound, ownerOnly: true },
+  // 막혔을 때 바로 열어 볼 수 있게 메뉴에 둡니다. 알바생도 봅니다.
+  { path: "/guide", label: "사용법", icon: BookOpen, ownerOnly: false },
 ];
 
 type Props = {
