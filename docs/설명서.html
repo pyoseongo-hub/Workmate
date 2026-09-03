@@ -1,0 +1,577 @@
+<title>WorkMate 사용법</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<style>
+  /* ── 색: 앱이 이미 쓰는 slate + blue 를 그대로 가져왔습니다 ───────── */
+  :root {
+    --ground:  #f4f6fa;
+    --paper:   #ffffff;
+    --ink:     #0f172a;
+    --ink-2:   #334155;
+    --muted:   #64748b;
+    --line:    #e2e8f0;
+    --line-2:  #cbd5e1;
+
+    --accent:      #2563eb;   /* 사장님 갈래 */
+    --accent-soft: #eff4ff;
+    --staff:       #7c3aed;   /* 알바생 갈래 */
+    --staff-soft:  #f4f0ff;
+    --warn:        #b45309;
+    --warn-soft:   #fffaeb;
+    --danger:      #e11d48;
+
+    --shadow: 0 1px 2px rgb(15 23 42 / .04), 0 8px 24px -12px rgb(15 23 42 / .12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:  #0b1220;
+      --paper:   #141d2e;
+      --ink:     #e8edf6;
+      --ink-2:   #b9c4d6;
+      --muted:   #8496ad;
+      --line:    #253247;
+      --line-2:  #33425c;
+
+      --accent:      #7ba5f7;
+      --accent-soft: #16233c;
+      --staff:       #b192f8;
+      --staff-soft:  #221a3a;
+      --warn:        #e0a53f;
+      --warn-soft:   #2a2110;
+      --danger:      #fb7185;
+
+      --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px -12px rgb(0 0 0 / .6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:  #0b1220;
+    --paper:   #141d2e;
+    --ink:     #e8edf6;
+    --ink-2:   #b9c4d6;
+    --muted:   #8496ad;
+    --line:    #253247;
+    --line-2:  #33425c;
+
+    --accent:      #7ba5f7;
+    --accent-soft: #16233c;
+    --staff:       #b192f8;
+    --staff-soft:  #221a3a;
+    --warn:        #e0a53f;
+    --warn-soft:   #2a2110;
+    --danger:      #fb7185;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px -12px rgb(0 0 0 / .6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont,
+                 "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.15rem 5rem;
+  }
+
+  /* ── 머리말 ──────────────────────────────────────────────────── */
+  .top { display: flex; flex-direction: column; gap: .55rem; margin-bottom: 2.5rem; }
+
+  .mark {
+    display: inline-flex; align-items: center; gap: .6rem;
+    font-size: .74rem; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .mark::before {
+    content: ""; width: 1.6rem; height: 2px;
+    background: var(--accent); border-radius: 2px;
+  }
+
+  h1 {
+    font-family: Hahmlet, "IBM Plex Sans KR", serif;
+    font-weight: 700; font-size: clamp(1.85rem, 6.5vw, 2.5rem);
+    line-height: 1.25; letter-spacing: -.02em;
+    margin: 0; text-wrap: balance;
+  }
+  .lede { margin: 0; color: var(--ink-2); font-size: 1rem; max-width: 34rem; }
+
+  /* ── 한다 / 안 한다 ───────────────────────────────────────────── */
+  .scope {
+    display: grid; gap: 1px; grid-template-columns: 1fr;
+    background: var(--line); border: 1px solid var(--line);
+    border-radius: 1rem; overflow: hidden; margin-bottom: 3rem;
+  }
+  @media (min-width: 34rem) { .scope { grid-template-columns: 1fr 1fr; } }
+
+  .scope > div { background: var(--paper); padding: 1.15rem 1.25rem; }
+  .scope h3 {
+    margin: 0 0 .65rem; font-size: .78rem; font-weight: 700;
+    letter-spacing: .09em; text-transform: uppercase;
+  }
+  .scope .yes h3 { color: var(--accent); }
+  .scope .no  h3 { color: var(--muted); }
+  .scope ul { margin: 0; padding-left: 1.05rem; }
+  .scope li { margin-bottom: .3rem; }
+  .scope li::marker { color: var(--line-2); }
+  .scope .no li { color: var(--muted); }
+
+  /* ── 갈래 (사장님 / 알바생) ───────────────────────────────────── */
+  .track { margin-bottom: 3.25rem; }
+
+  .track-head {
+    display: flex; align-items: baseline; gap: .7rem;
+    padding-bottom: .7rem; margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--tint);
+  }
+  .track-head h2 {
+    font-family: Hahmlet, serif; font-weight: 700;
+    font-size: 1.5rem; letter-spacing: -.015em; margin: 0;
+    color: var(--tint);
+  }
+  .track-head span { font-size: .84rem; color: var(--muted); }
+
+  .owner { --tint: var(--accent); --tint-soft: var(--accent-soft); }
+  .staff { --tint: var(--staff);  --tint-soft: var(--staff-soft); }
+
+  /* ── 단계 (진짜 순서라서 번호를 붙였습니다) ───────────────────── */
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.15rem; }
+
+  .steps > li {
+    display: grid; grid-template-columns: 2rem 1fr;
+    gap: .45rem 1rem; align-items: start;
+  }
+  .num {
+    grid-row: span 2;
+    width: 2rem; height: 2rem; border-radius: .7rem;
+    display: grid; place-items: center;
+    background: var(--tint-soft); color: var(--tint);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .92rem; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .steps h4 {
+    margin: .18rem 0 0; font-size: 1.02rem; font-weight: 700;
+    letter-spacing: -.01em; align-self: center;
+  }
+  .steps .body { grid-column: 2; margin: 0; color: var(--ink-2); }
+  .steps .body p { margin: 0 0 .5rem; }
+  .steps .body p:last-child { margin-bottom: 0; }
+
+  /* 화면에 실제로 뜨는 글자 */
+  kbd {
+    display: inline-block;
+    font-family: inherit; font-size: .86em; font-weight: 600;
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--line-2); border-radius: .5rem;
+    padding: .06em .45em; white-space: nowrap;
+    box-shadow: 0 1px 0 var(--line-2);
+  }
+
+  /* 앱 화면을 흉내 낸 조각 */
+  .screen {
+    margin: .7rem 0 .2rem;
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: .9rem; padding: .85rem 1rem;
+    box-shadow: var(--shadow);
+    font-size: .88rem;
+  }
+  .screen .row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .8rem; padding: .3rem 0;
+  }
+  .screen .row + .row { border-top: 1px solid var(--line); }
+  .screen .who { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+  .dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--accent); flex: none; }
+  .dot.v { background: var(--staff); }
+  .screen .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  .screen .cap {
+    font-size: .74rem; color: var(--muted); letter-spacing: .06em;
+    text-transform: uppercase; font-weight: 600; margin-bottom: .5rem;
+  }
+  .code {
+    font-family: "IBM Plex Mono", monospace; font-size: 1.35rem;
+    font-weight: 600; letter-spacing: .22em; text-align: center;
+    display: block; padding: .3rem 0;
+  }
+
+  /* 짚어 둘 것 */
+  .note {
+    display: grid; grid-template-columns: auto 1fr; gap: .7rem;
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
+    border-radius: .8rem; padding: .8rem .95rem;
+    margin: .75rem 0 .2rem; font-size: .9rem; color: var(--ink-2);
+  }
+  .note b { color: var(--warn); }
+  .note .icon { color: var(--warn); font-weight: 700; }
+
+  /* ── 규칙 표 ─────────────────────────────────────────────────── */
+  .table-scroll { overflow-x: auto; border-radius: 1rem; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; min-width: 26rem; background: var(--paper); }
+  th, td { text-align: left; padding: .72rem .95rem; border-bottom: 1px solid var(--line); }
+  thead th {
+    font-size: .74rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--ground);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.mk { font-weight: 700; }
+  td.ok { color: var(--accent); }
+  td.no { color: var(--muted); }
+
+  /* ── 자주 막히는 곳 ──────────────────────────────────────────── */
+  .qa { display: grid; gap: .6rem; }
+  details {
+    background: var(--paper); border: 1px solid var(--line);
+    border-radius: .85rem; padding: .1rem .2rem;
+  }
+  summary {
+    cursor: pointer; list-style: none;
+    padding: .8rem 1rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "＋"; color: var(--muted); font-weight: 400; flex: none;
+  }
+  details[open] summary::after { content: "－"; }
+  details[open] summary { border-bottom: 1px solid var(--line); }
+  details .ans { padding: .8rem 1rem 1rem; color: var(--ink-2); font-size: .93rem; }
+  details .ans p { margin: 0 0 .55rem; }
+  details .ans p:last-child { margin: 0; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: .7rem; }
+
+  h2.sec {
+    font-family: Hahmlet, serif; font-weight: 700;
+    font-size: 1.35rem; letter-spacing: -.015em;
+    margin: 0 0 1.1rem;
+  }
+  section { margin-bottom: 3.25rem; }
+
+  /* ── 맺음 ────────────────────────────────────────────────────── */
+  .limits {
+    background: var(--paper); border: 1px solid var(--line);
+    border-left: 3px solid var(--danger);
+    border-radius: .3rem .95rem .95rem .3rem;
+    padding: 1.1rem 1.25rem;
+  }
+  .limits h3 { margin: 0 0 .6rem; font-size: 1rem; }
+  .limits ul { margin: 0; padding-left: 1.05rem; color: var(--ink-2); }
+  .limits li { margin-bottom: .4rem; }
+  .limits li:last-child { margin-bottom: 0; }
+
+  footer {
+    margin-top: 3.5rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted); font-size: .82rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="mark">WorkMate</p>
+    <h1>근무표를 링크 하나로<br>같이 봅니다</h1>
+    <p class="lede">
+      사장님이 근무표를 고치면 알바생 폰에서도 바뀝니다.
+      앱을 받을 필요도, 가입할 필요도 없습니다 — 링크를 열고 이름을 고르면 끝입니다.
+    </p>
+  </header>
+
+  <div class="scope">
+    <div class="yes">
+      <h3>이 앱이 하는 일</h3>
+      <ul>
+        <li>누가 며칠 몇 시에 나오는지 달력에 적기</li>
+        <li>알바생끼리 교대 바꾸기 · 사장님이 승인하기</li>
+        <li>실제 출퇴근 시각을 근무일지에 남기기</li>
+        <li>이 달 사람마다 <b>며칠 · 몇 시간</b> 셈해 주기</li>
+        <li>누가 무엇을 고쳤는지 사장님께 알려 주기</li>
+      </ul>
+    </div>
+    <div class="no">
+      <h3>이 앱이 안 하는 일</h3>
+      <ul>
+        <li>급여를 셈하지 않습니다</li>
+        <li>휴게시간을 빼지 않습니다</li>
+        <li>주휴수당·야간수당을 붙이지 않습니다</li>
+        <li>근로계약서를 만들지 않습니다</li>
+      </ul>
+      <p style="margin:.6rem 0 0;font-size:.87rem">
+        시간을 정확히 세는 데까지만 합니다. 셈법은 매장마다 달라서 사장님 몫입니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════ 사장님 ══════════════ -->
+  <section class="track owner">
+    <div class="track-head">
+      <h2>사장님</h2>
+      <span>처음 한 번만 5분</span>
+    </div>
+
+    <ol class="steps">
+
+      <li>
+        <span class="num">1</span>
+        <h4>매장 만들기</h4>
+        <div class="body">
+          <p>
+            링크를 열면 <kbd>매장 새로 열기</kbd> 가 있습니다. 누르고 매장 이름을 적으세요
+            (예: <i>우리 매장 성수점</i>).
+          </p>
+          <p>
+            그다음 사장님 이름과 <b>숫자 4자리</b>를 정합니다.
+            앞으로 앱에 들어올 때 쓸 번호입니다. 잊지 마세요.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <span class="num">2</span>
+        <h4>직원 넣기</h4>
+        <div class="body">
+          <p>
+            메뉴에서 <kbd>직원 관리</kbd> 로 갑니다.
+            <kbd>직원 추가</kbd> 를 누르고 <b>이름</b>과 <b>숫자 4자리</b>를 적으세요.
+          </p>
+          <p>
+            번호는 사장님이 정해서 알려 주시면 됩니다.
+            목록에서 다시 볼 수 있으니, 알바생이 잊어도 알려 줄 수 있습니다.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <span class="num">3</span>
+        <h4>초대하기</h4>
+        <div class="body">
+          <p>
+            같은 화면 아래 <kbd>근무자 초대</kbd> 칸이 있습니다.
+            <kbd>카카오톡으로 초대하기</kbd> 를 누르면 링크가 복사됩니다.
+            단톡방에 붙여넣기 하세요.
+          </p>
+          <div class="screen">
+            <p class="cap">우리 매장 코드</p>
+            <span class="code">K7M2QP</span>
+          </div>
+          <p style="margin-top:.6rem">
+            링크가 안 열린다고 하면 이 <b>여섯 글자</b>를 불러 주셔도 됩니다.
+            <kbd>받은 코드로 들어가기</kbd> 에 적으면 같은 매장으로 들어옵니다.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <span class="num">4</span>
+        <h4>근무 넣기 — 한 달치를 한 번에</h4>
+        <div class="body">
+          <p>
+            <kbd>근무표</kbd> 에서 <kbd>＋ 이 시간으로 근무 등록</kbd> 을 누릅니다.
+            이름과 시간을 <b>한 번만</b> 고른 뒤, 달력에서 그 사람이 나오는 날짜를
+            쭉 눌러 나가면 됩니다.
+          </p>
+          <p>
+            누르는 동안에는 <b>아직 저장되지 않습니다.</b>
+            잘못 눌렀으면 다시 눌러 빼면 되고, 다 됐으면
+            <kbd>확인 (12곳)</kbd> 을 누르세요. 그때 한꺼번에 저장됩니다.
+          </p>
+          <div class="note">
+            <span class="icon">!</span>
+            <span>
+              <b>지우려면</b> 날짜를 누르고 아래 목록에서 휴지통을 누르세요.
+              <kbd>지울게요</kbd> 를 한 번 더 눌러야 지워집니다.
+            </span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <span class="num">5</span>
+        <h4>이 달 합계 보기</h4>
+        <div class="body">
+          <p>근무표 화면을 내리면 사람마다 <b>며칠 · 몇 시간</b>이 나옵니다.</p>
+          <div class="screen">
+            <p class="cap">9월 근무 합계</p>
+            <div class="row">
+              <span class="who"><span class="dot"></span>서연</span>
+              <span><span class="n">12</span>일 &nbsp; <span class="n">84</span>시간</span>
+            </div>
+            <div class="row">
+              <span class="who"><span class="dot v"></span>민수</span>
+              <span><span class="n">8</span>일 &nbsp; <span class="n">56</span>시간</span>
+            </div>
+          </div>
+          <p style="margin-top:.6rem">
+            시작 시각부터 끝난 시각까지를 그대로 센 숫자입니다.
+            여기서 쉬는 시간을 빼거나 급여를 셈하지는 않습니다.
+          </p>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <!-- ══════════════ 알바생 ══════════════ -->
+  <section class="track staff">
+    <div class="track-head">
+      <h2>알바생</h2>
+      <span>받은 링크만 있으면 됩니다</span>
+    </div>
+
+    <ol class="steps">
+
+      <li>
+        <span class="num">1</span>
+        <h4>들어가기</h4>
+        <div class="body">
+          <p>
+            사장님이 보낸 링크를 누르면 <kbd>누구세요?</kbd> 가 뜹니다.
+            목록에서 <b>내 이름</b>을 고르고, 사장님께 받은 <b>숫자 4자리</b>를 넣으면 끝입니다.
+          </p>
+          <p>앱을 받을 필요도, 가입할 필요도 없습니다.</p>
+        </div>
+      </li>
+
+      <li>
+        <span class="num">2</span>
+        <h4>내 근무 넣기</h4>
+        <div class="body">
+          <p>
+            <kbd>＋ 이 시간으로 근무 등록</kbd> 으로 내가 되는 날을 눌러 두면 됩니다.
+            사장님 화면에도 바로 보이고, 사장님께 알림이 갑니다.
+          </p>
+          <div class="note">
+            <span class="icon">!</span>
+            <span>
+              넣고 지우는 건 <b>오늘부터 앞날</b>만 됩니다.
+              지난 날짜는 "그날 일했다"는 기록이라서 사장님만 고칠 수 있습니다.
+            </span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <span class="num">3</span>
+        <h4>교대 바꾸기</h4>
+        <div class="body">
+          <p>
+            달력에서 날짜를 고르면 위쪽에 <kbd>교대 신청</kbd> 이 나옵니다.
+            그날 근무가 그대로 신청서에 들어가서 날짜를 다시 적을 필요가 없습니다.
+          </p>
+          <p>
+            신청하면 <b>① 대신할 사람이 확인 → ② 사장님이 승인</b> 순서로 넘어갑니다.
+            사장님이 승인해야 근무표가 실제로 바뀝니다.
+          </p>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <!-- ══════════════ 규칙 ══════════════ -->
+  <section>
+    <h2 class="sec">누가 무엇을 할 수 있나</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>하는 일</th><th>사장님</th><th>알바생</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mk">앞날 근무 넣기·지우기</td><td class="ok">가능</td><td class="ok">내 것만</td></tr>
+          <tr><td class="mk">지난 날짜 고치기</td><td class="ok">가능</td><td class="no">안 됨</td></tr>
+          <tr><td class="mk">교대 신청</td><td class="no">안 함</td><td class="ok">가능</td></tr>
+          <tr><td class="mk">교대 승인</td><td class="ok">사장님만</td><td class="no">안 됨</td></tr>
+          <tr><td class="mk">직원 추가·삭제</td><td class="ok">사장님만</td><td class="no">안 됨</td></tr>
+          <tr><td class="mk">이 달 합계 보기</td><td class="ok">전 직원</td><td class="ok">내 것만</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ FAQ ══════════════ -->
+  <section>
+    <h2 class="sec">자주 막히는 곳</h2>
+    <div class="qa">
+
+      <details>
+        <summary>번호를 잊었어요</summary>
+        <div class="ans">
+          <p>사장님이 <kbd>직원 관리</kbd> 에서 볼 수 있습니다. 물어보세요.</p>
+          <p>사장님 본인이 잊으셨다면 되찾을 방법이 없습니다. 매장을 새로 여셔야 합니다.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>알바생 폰에서 근무표가 안 보여요</summary>
+        <div class="ans">
+          <p>사장님이 보낸 <b>링크</b>로 들어갔는지 확인해 주세요. 주소만 치고 들어가면 매장이 연결되지 않습니다.</p>
+          <p>그럴 때는 <kbd>받은 코드로 들어가기</kbd> 에 여섯 글자 코드를 넣으면 됩니다.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>휴지통을 눌렀는데 아무 일도 안 일어나요</summary>
+        <div class="ans">
+          <p><kbd>잠깐만요</kbd> 창이 뜨면 <kbd>지울게요</kbd> 를 한 번 더 눌러 주세요. 실수로 지우는 걸 막으려고 두 번 묻습니다.</p>
+          <p>지난 날짜는 알바생이 지울 수 없습니다. 휴지통 자체가 안 보입니다.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>누가 뭘 바꿨는지 어떻게 아나요</summary>
+        <div class="ans">
+          <p>오른쪽 위 <b>종 모양</b>에 숫자가 뜹니다. 눌러 보면 "누가 무엇을 했는지"가 시간 순으로 적혀 있습니다.</p>
+          <p>본인이 한 일은 안 뜹니다. 이미 아시니까요.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>급여는 어디서 보나요</summary>
+        <div class="ans">
+          <p>이 앱은 급여를 셈하지 않습니다. <b>며칠 · 몇 시간</b>까지만 보여 드립니다.</p>
+          <p>휴게시간을 어떻게 볼지, 수당을 어떻게 붙일지는 매장마다 다릅니다. 그 숫자를 가지고 사장님이 판단하시면 됩니다.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- ══════════════ 한계 ══════════════ -->
+  <section>
+    <h2 class="sec">쓰시기 전에 알아 두실 것</h2>
+    <div class="limits">
+      <h3>솔직하게 적어 둡니다</h3>
+      <ul>
+        <li><b>매장 코드를 아는 사람은 그 매장 근무표를 봅니다.</b> 서로 아는 사람끼리 쓰는 것을 전제로 만들었습니다. 모르는 사람에게 링크가 새지 않게 해 주세요.</li>
+        <li><b>4자리 번호는 은행 비밀번호 같은 수준이 아닙니다.</b> "남의 이름으로 잘못 들어가는 것"을 막는 정도로 봐 주세요.</li>
+        <li><b>근로계약서·급여명세서를 대신하지 않습니다.</b> 법으로 남겨야 하는 서류는 따로 챙기셔야 합니다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    WorkMate · 근무표 · 교대 · 근무일지 &nbsp;|&nbsp; 이 설명서는 앱이 바뀌면 함께 고칩니다.
+  </footer>
+
+</div>
