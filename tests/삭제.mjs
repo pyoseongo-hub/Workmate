@@ -14,7 +14,8 @@ fs.mkdirSync(OUT, { recursive: true });
 const APP = "http://localhost:3000";
 
 const browser = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  // 크로뮴 위치. 안 주면 playwright 가 깔아 둔 것을 씁니다 (pnpm exec playwright install chromium)
+  executablePath: process.env.CHROME_PATH || undefined,
 });
 
 const ok = (m) => console.log(`  OK   ${m}`);

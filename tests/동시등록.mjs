@@ -13,7 +13,7 @@ const APP = "http://localhost:3000";
 const ok = (m) => console.log(`  OK   ${m}`);
 const fail = (m) => { console.log(`  실패 ${m}`); process.exitCode = 1; };
 
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
 const phone = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true };
 
 // ── 사장님 ──────────────────────────────────────────────

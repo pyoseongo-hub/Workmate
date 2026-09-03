@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -180,7 +181,17 @@ app.get("/api/health", (_req, res) => {
 // ───────────────────────── 앱 화면 ─────────────────────────
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const publicDir = path.resolve(here, "public");
+
+/**
+ * 화면 파일이 있는 곳.
+ *   빌드한 뒤(dist/server.js)     → 옆의 public/
+ *   소스로 바로 돌릴 때(tsx watch) → dist/public (먼저 pnpm build 를 한 번 해 둔다)
+ * 둘 다 없으면 API 만 돌아갑니다. pnpm dev(vite)가 화면을 맡고 /api 만 여기로 넘깁니다.
+ */
+const publicDir =
+  [path.resolve(here, "public"), path.resolve(here, "..", "dist", "public")].find((dir) =>
+    existsSync(path.join(dir, "index.html"))
+  ) ?? path.resolve(here, "public");
 
 app.use(express.static(publicDir));
 

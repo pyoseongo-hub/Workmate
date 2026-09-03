@@ -6,7 +6,7 @@ const OUT = fileURLToPath(new URL("./결과/", import.meta.url));
 fs.mkdirSync(OUT, { recursive: true });
 const APP = "http://localhost:3000";
 
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 const p = await ctx.newPage();
 

@@ -13,7 +13,6 @@ import WorkLog from "./pages/WorkLog";
 import Swaps from "./pages/Swaps";
 import Staff from "./pages/Staff";
 import Guide from "./pages/Guide";
-import Share from "./pages/Share";
 import NotFound from "@/pages/NotFound";
 
 /**
@@ -45,9 +44,6 @@ function AppRouter() {
         <Route path="/swaps" component={Swaps} />
         <Route path="/staff" component={Staff} />
         <Route path="/guide" component={Guide} />
-
-        {/* 카톡 등으로 공유한 근무표를 여는 주소 */}
-        <Route path="/share/:id" component={Share} />
 
         <Route component={NotFound} />
       </Switch>

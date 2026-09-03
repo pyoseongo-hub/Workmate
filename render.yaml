@@ -15,7 +15,7 @@ services:
     # 싱가포르가 한국에서 가장 가깝습니다 (무료 플랜에서 고를 수 있는 곳 중).
     region: singapore
 
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm build
     startCommand: pnpm start
 
     # Render 가 이 주소로 서버가 살아 있는지 확인합니다.

@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 const APP = "http://localhost:3000";
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
 const p = await ctx.newPage();
 const calls = [];
