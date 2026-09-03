@@ -2,6 +2,7 @@
 
 작은 가게 근무표 앱. **사장님 + 알바생**이 링크 하나로 같은 근무표를 봅니다.
 작업 브랜치: **`claude/workmate-project-rebuild-0g0b5d`**
+작업 자리: **사장님 윈도우 PC** `C:\Users\User\Downloads\workmate` (2026-09-03 부터)
 
 📖 **자세한 것은 `docs/지금-상태.md` 를 먼저 읽으세요.** 여기는 요약입니다.
 
@@ -17,30 +18,31 @@
 
 ---
 
-## ⌨️ 시작 명령어
+## ⌨️ 시작 명령어 (Git Bash 에서)
 
 ```bash
-pnpm install
-pnpm build                       # 화면 + 서버
+pnpm install --frozen-lockfile   # Render 와 똑같이
+pnpm build                       # 화면 + 서버 (윈도우에서도 된다)
 PORT=3000 node dist/server.js    # http://localhost:3000
 pnpm check                       # 타입 검사 — 커밋 전에 반드시
 ```
 
-⚠️ **`pnpm dev` 는 반쪽이다.** 매장 API(`/api/stores`)가 없어서 자료가 서버로 안 간다.
-화면 모양만 만질 때가 아니면 `pnpm build` + `node dist/server.js` 를 쓴다.
+화면 모양만 만질 때: `pnpm dev:server` (API, 3000) + `pnpm dev` (화면, 5173).
 
 ### 손으로 눌러 보는 검사 (넣고 나면 반드시 돌린다)
 
+서버를 띄운 뒤 다른 창에서:
+
 ```bash
+node tests/번호.mjs      # 번호가 화면·응답에 없나, 틀리면 막히나, 이름만 고쳐도 남나
 node tests/삭제.mjs      # 지우기 네 곳 + 안전 상자 안에서 confirm() 이 막히는 것
 node tests/알림.mjs      # 확인 버튼 · 알림 · 종 배지
 node tests/동시등록.mjs  # 브라우저 둘로 동시에 넣어도 안 사라지나
 node tests/사용법.mjs    # 사용법 화면
 node tests/판번호.mjs    # 판 번호 충돌 (API 직접)
-node tests/부하.mjs      # 탭 하나가 1분에 몇 번 부르나
 ```
 
-크로뮴 경로가 필요하다: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
+크로뮴은 `pnpm exec playwright install chromium` 으로 한 번 깔아 둔다 (이 PC 에는 깔려 있다).
 
 ---
 
@@ -54,8 +56,10 @@ node tests/부하.mjs      # 탭 하나가 1분에 몇 번 부르나
 4. **목록을 고칠 때는 함수 꼴로.**
    `setShifts((prev) => ...)` ○ / `setShifts([...shifts, 새것])` ✗
    값으로 주면 그 사이 남이 넣은 것을 지운다.
-5. **옛 뼈대를 건드리지 않는다** — `server/routers.ts` · `server/_core/` · `drizzle/`.
-   화면과 안 이어져 있다. 진짜 서버는 `server/app.ts` 다.
+5. **번호(PIN)를 앱으로 내려보내지 않는다.** 서버(`server/app.ts` 의 `hidePins`)가 지운다.
+   직원 목록을 저장할 때 번호가 비어 있으면 서버가 있던 것을 그대로 둔다(`keepPins`).
+
+서버는 `server/app.ts` 하나다. 옛 뼈대(tRPC·drizzle·Manus)는 2026-09-03 에 걷어냈다.
 
 ---
 
@@ -67,6 +71,7 @@ node tests/부하.mjs      # 탭 하나가 1분에 몇 번 부르나
 | 동시에 고치면 한 명 것이 사라짐 | 목록을 통째로 덮어씀 → 판 번호(version)로 막음 |
 | 켜 두기만 해도 1분에 43번 호출 | 자료 종류마다 각자 시계 + 매번 통째로 내려받음 |
 | 알림 읽어도 종 배지가 안 사라짐 | 위를 고치다 깨짐. **성능을 고치면 검사를 다시 돌린다** |
+| 매장 코드만 알면 번호가 다 보임 | 번호가 자료에 실려 내려감 → 서버가 지우고 서버가 확인 |
 | 여백이 두 배 | `Card` 에 이미 `py-6` 이 있다 → `py-0` 을 붙인다 |
 | 폰에서 달력이 잘림 | `min-w-full sm:min-w-[680px]` |
 
@@ -75,6 +80,7 @@ node tests/부하.mjs      # 탭 하나가 1분에 몇 번 부르나
 ## 📌 지금 막힌 곳
 
 **배포.** 인터넷에 안 올라가 있어서 주소가 없다.
+코드 쪽은 다 됐다(설치 → 빌드 → 검사 → 서버 → API 전부 통과, 2026-09-03).
 Neon(자료 창고) + Render(서버) 가입을 **사장님이 직접** 하셔야 한다.
 절차는 `docs/배포하기.md`. 그게 끝나야 홍보를 시작할 수 있다.
 
@@ -88,3 +94,4 @@ Neon(자료 창고) + Render(서버) 가입을 **사장님이 직접** 하셔야
 | `docs/배포하기.md` | Neon + Render 절차 |
 | `docs/홍보-계획.md` | 조사 결과 + 올린 글 장부 |
 | `docs/설명서.html` | 설명서 (앱 안 `Guide.tsx` 와 같은 내용) |
+| `tests/README.md` | 검사 돌리는 법 |

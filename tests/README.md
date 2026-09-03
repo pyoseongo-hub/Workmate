@@ -8,15 +8,17 @@
 
 ```bash
 pnpm build
-setsid nohup env PORT=3000 node dist/server.js > /tmp/srv.log 2>&1 < /dev/null & disown
-sleep 5 && curl -s localhost:3000/api/health   # {"ok":true,...} 가 나와야 합니다
+PORT=3000 node dist/server.js          # 창 하나를 차지합니다. 다른 창에서 검사를 돌리세요
+curl -s localhost:3000/api/health      # {"ok":true,...} 가 나와야 합니다
 ```
 
-`setsid` 를 쓰는 이유: 그냥 `&` 로 띄우면 명령이 끝날 때 서버도 같이 죽습니다.
+크로뮴은 한 번만 깔아 둡니다: `pnpm exec playwright install chromium`
+(다른 크로뮴을 쓰려면 `CHROME_PATH=경로` 로 줍니다)
 
 ## 검사 돌리기
 
 ```bash
+node tests/번호.mjs        # 번호가 화면·응답에 없나, 틀리면 막히나, 이름만 고쳐도 남나
 node tests/삭제.mjs        # 지우기 네 곳 (근무·교대·근무일지·직원)
 node tests/알림.mjs        # 확인 버튼 · 알림 · 종 배지
 node tests/동시등록.mjs    # 브라우저 둘로 동시에 넣어도 안 사라지나
