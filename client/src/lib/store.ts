@@ -109,6 +109,28 @@ export async function createStore(name: string): Promise<string> {
   return result.code;
 }
 
+/**
+ * 이름과 번호가 맞는지 서버에 물어봅니다.
+ *
+ * 번호는 서버만 알고 있습니다. 앱이 받는 직원 목록에는 번호 칸이 비어 있습니다.
+ * 틀리면 서버가 이유를 말해 줍니다 (안 맞음 · 여러 번 틀려서 잠깐 막힘).
+ */
+export async function loginOnServer(
+  code: string,
+  name: string,
+  pin: string
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    await ask(`/api/stores/${code}/login`, {
+      method: "POST",
+      body: JSON.stringify({ name, pin }),
+    });
+    return { ok: true, message: "" };
+  } catch (error) {
+    return { ok: false, message: (error as Error).message };
+  }
+}
+
 /** 매장 자료를 통째로 꺼냅니다. 앱을 처음 열 때 한 번. 없는 코드면 null */
 export async function fetchStore(code: string): Promise<StoreResponse | null> {
   try {

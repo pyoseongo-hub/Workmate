@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useSharedState } from "@/hooks/useSharedState";
+import { currentStoreCode, loginOnServer } from "@/lib/store";
 import { type Member } from "@/types";
 
 /**
@@ -12,10 +13,9 @@ import { type Member } from "@/types";
  * 예전에는 "이름 고르기" 와 "사장님 비밀번호" 가 따로 놀았습니다.
  * 이제 한 번에 정해집니다.
  *
- * ⚠️ 번호 확인은 이 브라우저 안에서 합니다.
- *    "남의 이름으로 잘못 들어가는 것" 을 막는 정도이지,
- *    작정하고 뚫으려는 사람을 막지는 못합니다.
- *    (서버를 붙이면 번호 확인을 서버로 옮길 예정입니다)
+ * 번호 확인 (2026-09-03 부터):
+ *   매장 코드가 있으면 → 서버가 봅니다. 앱은 번호를 받지 않습니다.
+ *   그 밖(미리보기·이 기기만) → 이 브라우저 안에서 봅니다.
  */
 
 type RoleValue = {
@@ -32,8 +32,8 @@ type RoleValue = {
   /** 사장님이 알바생 화면을 둘러보는 중인가 */
   viewAsStaff: boolean;
 
-  /** 이름과 번호로 들어옵니다. 맞으면 true */
-  login: (name: string, pin: string) => boolean;
+  /** 이름과 번호로 들어옵니다. 안 맞으면 message 에 이유가 있습니다 */
+  login: (name: string, pin: string) => Promise<{ ok: boolean; message: string }>;
   /** 맨 처음 매장을 만듭니다. 사장님을 만들고 바로 들어옵니다 */
   setupOwner: (name: string, pin: string) => void;
   /** 나갑니다 */
@@ -78,16 +78,24 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const isOwner = me?.role === "owner";
   const isOwnerMode = isOwner && !viewAsStaff;
 
-  const login = (name: string, pin: string) => {
+  const login = async (name: string, pin: string) => {
     const found = members.find((member) => member.name === name);
-    if (!found || found.pin !== pin) return false;
+    if (!found) return { ok: false, message: "이름과 번호가 맞지 않습니다." };
+
+    const code = currentStoreCode();
+    if (code) {
+      const result = await loginOnServer(code, name, pin);
+      if (!result.ok) return result;
+    } else if (found.pin !== pin) {
+      return { ok: false, message: "이름과 번호가 맞지 않습니다." };
+    }
 
     setMyName(name);
     setViewAsStaff(false);
     try {
       localStorage.setItem(MY_NAME_KEY, name);
     } catch {}
-    return true;
+    return { ok: true, message: "" };
   };
 
   /**

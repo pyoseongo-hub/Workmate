@@ -35,7 +35,7 @@ console.log((await p.getByText("이 앱이 하는 일").count()) > 0 ? "  OK   �
 // 접힌 질문 열어 보기
 await p.getByText("번호를 잊었어요").click();
 await p.waitForTimeout(400);
-console.log((await p.getByText(/직원 관리.*에서 볼 수 있습니다/).count()) > 0
+console.log((await p.getByText(/새 번호로.*바꿔 줄 수 있습니다/).count()) > 0
   ? "  OK   질문이 펼쳐진다"
   : "  실패 안 펼쳐짐");
 

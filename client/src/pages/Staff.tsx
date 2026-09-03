@@ -14,6 +14,9 @@ import type { Member } from "@/types";
  *
  * 직원마다 4자리 번호가 있습니다. 그 번호로 앱에 들어옵니다.
  * 사장님이 정해서 알려 주면 됩니다.
+ *
+ * 번호는 서버만 알고 있어 여기서도 보이지 않습니다 (2026-09-03).
+ * 직원이 잊으면 사장님이 새 번호로 바꿔 주면 됩니다.
  */
 export default function Staff() {
   const { members, setMembers, isOwnerMode, myName } = useRole();
@@ -58,9 +61,10 @@ export default function Staff() {
         },
       ]);
     } else if (editing) {
+      // 번호를 비워 두면 그대로 둡니다 (빈 번호는 서버가 있던 것으로 채웁니다)
       setMembers((prev) =>
         prev.map((member) =>
-          member.id === editing.id ? { ...member, name, pin } : member
+          member.id === editing.id ? { ...member, name, pin: pin || member.pin } : member
         )
       );
     }
@@ -125,7 +129,7 @@ export default function Staff() {
                     {member.role === "owner" ? "사장님" : "직원"}
                     <span className="text-slate-300">·</span>
                     <KeyRound className="h-3 w-3" />
-                    {member.pin}
+                    번호 있음
                   </p>
                 </div>
 
@@ -186,7 +190,8 @@ function MemberDialog({
   onClose: () => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
-  const [pin, setPin] = useState(initial?.pin ?? "");
+  // 수정할 때는 번호 칸을 비워 둡니다. 비운 채로 저장하면 번호는 그대로입니다.
+  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
 
   const submit = () => {
@@ -199,7 +204,8 @@ function MemberDialog({
       setError("같은 이름이 이미 있습니다. 구분되는 이름으로 적어 주세요.");
       return;
     }
-    if (!/^\d{4}$/.test(pin)) {
+    const keepPin = initial !== null && pin === "";
+    if (!keepPin && !/^\d{4}$/.test(pin)) {
       setError("번호는 숫자 4자리로 정해 주세요.");
       return;
     }
@@ -228,7 +234,7 @@ function MemberDialog({
         />
       </Field>
 
-      <Field label="들어올 때 쓸 번호 (숫자 4자리)">
+      <Field label={initial ? "새 번호 (바꿀 때만 · 숫자 4자리)" : "들어올 때 쓸 번호 (숫자 4자리)"}>
         <input
           inputMode="numeric"
           maxLength={4}
@@ -240,13 +246,13 @@ function MemberDialog({
           onKeyDown={(event) => {
             if (event.key === "Enter") submit();
           }}
-          placeholder="0000"
+          placeholder={initial ? "비워 두면 그대로" : "0000"}
           className={`${inputClass} text-center text-lg tracking-[0.4em]`}
         />
       </Field>
 
       <p className="text-[11px] leading-4 text-slate-400">
-        번호는 목록에서 다시 볼 수 있으니, 직원이 잊어도 알려 줄 수 있어요.
+        번호는 서버만 알고 있어 다시 볼 수 없어요. 직원이 잊으면 여기서 새 번호로 바꿔 주세요.
       </p>
     </FormDialog>
   );

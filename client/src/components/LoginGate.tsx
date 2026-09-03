@@ -388,19 +388,23 @@ function SignIn({
   onLogin,
 }: {
   members: ReturnType<typeof useRole>["members"];
-  onLogin: (name: string, pin: string) => boolean;
+  onLogin: (name: string, pin: string) => Promise<{ ok: boolean; message: string }>;
 }) {
   const [name, setName] = useState(members[0]?.name ?? "");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!/^\d{4}$/.test(pin)) {
       setError("번호 4자리를 넣어 주세요.");
       return;
     }
-    if (!onLogin(name, pin)) {
-      setError("이름과 번호가 맞지 않습니다.");
+    setBusy(true);
+    const result = await onLogin(name, pin);
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.message || "이름과 번호가 맞지 않습니다.");
       setPin("");
     }
   };
@@ -461,14 +465,14 @@ function SignIn({
 
         <Button
           onClick={submit}
-          disabled={pin.length !== 4}
+          disabled={busy || pin.length !== 4}
           className="h-12 w-full rounded-xl bg-slate-900 text-sm font-bold hover:bg-slate-800"
         >
-          들어가기
+          {busy ? "확인 중…" : "들어가기"}
         </Button>
 
         <p className="text-center text-[11px] leading-4 text-slate-400">
-          번호를 모르면 사장님께 물어보세요.
+          번호를 잊었으면 사장님께 새로 정해 달라고 하세요.
         </p>
       </div>
     </Shell>

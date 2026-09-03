@@ -29,13 +29,101 @@ import {
  *
  * ⚠️ 지금 보안 수준:
  *   매장 코드를 아는 사람은 그 매장 자료를 읽고 쓸 수 있습니다.
- *   개인 번호(PIN)는 자료 안에 담겨 있어, 코드를 알면 볼 수 있습니다.
+ *   개인 번호(PIN)는 서버만 알고, 내려보내지 않습니다 (2026-09-03).
  *   작은 매장에서 서로 아는 사람끼리 쓰는 것을 전제로 한 수준입니다.
- *   (다음 단계에서 번호 확인을 서버로 옮기고 자료에서 빼는 것이 좋습니다)
+ *   (다음 단계: 들어온 사람에게 표를 주고 저장할 때 표를 확인하기)
  */
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
+
+// ───────────────────────── 번호(PIN) ─────────────────────────
+//
+// 2026-09-03 까지는 번호가 자료 안에 그대로 담겨 내려갔습니다.
+// 매장 코드만 알면 브라우저 개발자도구로 모든 사람 번호를 볼 수 있었습니다.
+//
+// 지금은
+//   · 내려보낼 때 번호를 지웁니다 (hidePins)
+//   · 올라온 목록에 번호가 비어 있으면 창고에 있던 것을 그대로 둡니다 (keepPins)
+//   · 번호가 맞는지는 서버가 봅니다 (POST /login). 다섯 번 틀리면 5분 막습니다.
+//
+// 아직 안 되는 것: 매장 코드를 아는 사람이 자료를 고치는 것은 여전히 막지 않습니다.
+// (그러려면 들어온 사람에게 표를 주고, 저장할 때마다 표를 확인해야 합니다. 다음 단계)
+
+type MemberRow = { id?: unknown; name?: unknown; role?: unknown; pin?: unknown };
+
+/** 번호를 지운 목록을 돌려줍니다. members 가 아니면 그대로. */
+function hidePins(key: string, items: unknown[]): unknown[] {
+  if (key !== "members") return items;
+  return items.map((item) =>
+    item && typeof item === "object" ? { ...(item as MemberRow), pin: "" } : item
+  );
+}
+
+/**
+ * 올라온 목록에서 번호가 빈 사람은 창고에 있던 번호를 그대로 둡니다.
+ * 앱은 번호를 못 받으므로 저장할 때도 빈 채로 올립니다. 그걸 여기서 채웁니다.
+ * 번호를 새로 적어 올리면(직원 추가·번호 바꾸기) 그 번호로 바뀝니다.
+ */
+async function keepPins(code: string, items: unknown[]): Promise<unknown[]> {
+  const { items: current } = await readData(code, "members");
+  const known = new Map<string, string>();
+  for (const row of current as MemberRow[]) {
+    if (row && typeof row.pin === "string" && row.pin) known.set(String(row.id), row.pin);
+  }
+  return items.map((item) => {
+    if (!item || typeof item !== "object") return item;
+    const row = item as MemberRow;
+    const pin = typeof row.pin === "string" ? row.pin : "";
+    return pin ? row : { ...row, pin: known.get(String(row.id)) ?? "" };
+  });
+}
+
+/** 틀린 횟수. 다섯 번 틀리면 5분 동안 막습니다 (번호가 네 자리라 마구 넣어 보는 것을 막으려고). */
+const failures = new Map<string, { count: number; until: number }>();
+const MAX_FAILS = 5;
+const LOCK_MS = 5 * 60 * 1000;
+
+app.post("/api/stores/:code/login", async (req, res) => {
+  const code = req.params.code.toUpperCase();
+  const name = String(req.body?.name ?? "").trim();
+  const pin = String(req.body?.pin ?? "");
+  const lockKey = `${code}:${name}`;
+
+  const lock = failures.get(lockKey);
+  if (lock && lock.until > Date.now()) {
+    const minutes = Math.ceil((lock.until - Date.now()) / 60000);
+    res.status(429).json({ error: `번호를 여러 번 틀렸습니다. ${minutes}분 뒤에 다시 해 주세요.` });
+    return;
+  }
+
+  try {
+    const store = await getStore(code);
+    if (!store) {
+      res.status(404).json({ error: "그런 매장 코드가 없습니다." });
+      return;
+    }
+
+    const { items } = await readData(code, "members");
+    const found = (items as MemberRow[]).find((row) => row && row.name === name);
+
+    if (!found || typeof found.pin !== "string" || found.pin !== pin) {
+      const count = (lock?.count ?? 0) + 1;
+      failures.set(lockKey, {
+        count,
+        until: count >= MAX_FAILS ? Date.now() + LOCK_MS : 0,
+      });
+      res.status(401).json({ error: "이름과 번호가 맞지 않습니다." });
+      return;
+    }
+
+    failures.delete(lockKey);
+    res.json({ ok: true, role: found.role });
+  } catch (error) {
+    console.error("[api] 번호 확인 실패", error);
+    res.status(500).json({ error: "번호를 확인하지 못했습니다." });
+  }
+});
 
 // ───────────────────────── 매장 ─────────────────────────
 
@@ -92,7 +180,11 @@ app.get("/api/stores/:code", async (req, res) => {
     }
 
     const { data, versions } = await readAll(code);
-    res.json({ ...store, data, versions });
+    res.json({
+      ...store,
+      data: { ...data, members: hidePins("members", data.members) },
+      versions,
+    });
   } catch (error) {
     console.error("[api] 매장 읽기 실패", error);
     res.status(500).json({ error: "자료를 읽지 못했습니다." });
@@ -117,7 +209,7 @@ app.get("/api/stores/:code/:key", async (req, res) => {
     }
 
     const { items, version } = await readData(code, key);
-    res.json({ items, version });
+    res.json({ items: hidePins(key, items), version });
   } catch (error) {
     console.error("[api] 자료 읽기 실패", error);
     res.status(500).json({ error: "자료를 읽지 못했습니다." });
@@ -155,12 +247,13 @@ app.put("/api/stores/:code/:key", async (req, res) => {
       return;
     }
 
-    const result = await writeData(code, key, items, baseVersion);
+    const toSave = key === "members" ? await keepPins(code, items) : items;
+    const result = await writeData(code, key, toSave, baseVersion);
 
     if (!result.ok) {
       res.status(409).json({
         error: "그 사이에 다른 사람이 고쳤습니다.",
-        items: result.items,
+        items: hidePins(key, result.items),
         version: result.version,
       });
       return;
