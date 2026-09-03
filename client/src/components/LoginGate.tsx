@@ -267,6 +267,10 @@ function Shell({ children }: { children: ReactNode }) {
             <p className="mt-0.5 text-xs text-slate-400">
               우리 매장 근무표 · 교대 · 근무일지
             </p>
+            {/* 홍보 링크로 처음 온 사람이 "뭐가 다른지"를 첫 줄에서 알게 */}
+            <p className="mt-2 text-[13px] font-semibold text-slate-600">
+              앱 설치도, 가입도 없습니다. 링크 하나로 사장님과 알바생이 같은 근무표를 봅니다.
+            </p>
           </div>
         </div>
 
