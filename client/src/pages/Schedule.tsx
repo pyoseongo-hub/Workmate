@@ -170,7 +170,8 @@ export default function Schedule() {
       added.push({ workDate, person: form.person, start: form.start, end: form.end });
     }
 
-    setShifts([...shifts, ...added]);
+    // 함수로 얹습니다 — 그 사이 남이 넣은 근무를 지우지 않으려고.
+    setShifts((prev) => [...prev, ...added]);
     setShowScheduleDialog(false);
   };
 
@@ -200,8 +201,8 @@ export default function Schedule() {
       `${formatDateLabel(target.workDate)} ${target.person} 근무를 지울까요?`
     );
     if (!agreed) return;
-    setShifts(
-      shifts.filter(
+    setShifts((prev) =>
+      prev.filter(
         (shift) =>
           !(shift.workDate === target.workDate && shift.person === target.person)
       )
@@ -262,7 +263,19 @@ export default function Schedule() {
       const added = draft.filter((shift) => !before.has(key(shift)));
       const removed = shifts.filter((shift) => !after.has(key(shift)));
 
-      setShifts(draft);
+      /**
+       * 임시 목록을 통째로 올리지 않고 "늘고 준 것"만 얹습니다.
+       *
+       * 임시 목록은 등록을 시작한 순간의 사본입니다. 그 사이(몇 분일 수도 있습니다)
+       * 다른 사람이 넣은 근무는 여기에 없습니다. 통째로 올리면 그게 사라집니다.
+       */
+      const removedKeys = new Set(removed.map(key));
+      setShifts((prev) => [
+        ...prev.filter((shift) => !removedKeys.has(key(shift))),
+        ...added.filter(
+          (shift) => !prev.some((exist) => key(exist) === key(shift))
+        ),
+      ]);
 
       const parts: string[] = [];
       if (added.length) parts.push(`${pickName} 근무 ${listDays(added)} 넣었어요`);

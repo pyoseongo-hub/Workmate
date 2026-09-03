@@ -72,6 +72,8 @@ type StoreResponse = {
   code: string;
   name: string;
   data: Record<DataKey, unknown[]>;
+  /** 자료 종류마다 몇 번째 판인지 */
+  versions: Record<DataKey, number>;
 };
 
 async function ask(path: string, options?: RequestInit) {
@@ -107,7 +109,7 @@ export async function createStore(name: string): Promise<string> {
   return result.code;
 }
 
-/** 매장 자료를 통째로 꺼냅니다. 없는 코드면 null */
+/** 매장 자료를 통째로 꺼냅니다. 앱을 처음 열 때 한 번. 없는 코드면 null */
 export async function fetchStore(code: string): Promise<StoreResponse | null> {
   try {
     return await ask(`/api/stores/${code}`);
@@ -116,10 +118,64 @@ export async function fetchStore(code: string): Promise<StoreResponse | null> {
   }
 }
 
-/** 자료 한 종류를 통째로 담습니다. */
-export async function saveData(code: string, key: DataKey, items: unknown[]) {
-  await ask(`/api/stores/${code}/${key}`, {
+/**
+ * 판 번호만 봅니다. 8초마다 부르는 곳이라 가벼워야 합니다.
+ * 자료는 안 내려옵니다 — 바뀐 종류만 따로 받아 갑니다.
+ */
+export async function fetchVersions(
+  code: string
+): Promise<Record<DataKey, number> | null> {
+  try {
+    const result = await ask(`/api/stores/${code}/versions`);
+    return result.versions ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** 자료 한 종류만 꺼냅니다. */
+export async function fetchOne(
+  code: string,
+  key: DataKey
+): Promise<{ items: unknown[]; version: number } | null> {
+  try {
+    return await ask(`/api/stores/${code}/${key}`);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 자료 한 종류를 통째로 담습니다.
+ *
+ * baseVersion — 내가 보고 있던 판 번호.
+ *   그 사이에 남이 고쳤으면 서버가 거절하고 지금 자료를 돌려줍니다.
+ *   그때는 { ok: false, items, version } 이 나오므로 부르는 쪽이 다시 얹습니다.
+ */
+export async function saveData(
+  code: string,
+  key: DataKey,
+  items: unknown[],
+  baseVersion?: number
+): Promise<
+  { ok: true; version: number } | { ok: false; items: unknown[]; version: number }
+> {
+  const response = await fetch(`/api/stores/${code}/${key}`, {
     method: "PUT",
-    body: JSON.stringify({ items }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items, baseVersion }),
   });
+
+  if (response.status === 409) {
+    const body = await response.json();
+    return { ok: false, items: body.items ?? [], version: body.version ?? 0 };
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error ?? "자료를 담지 못했습니다.");
+  }
+
+  const body = await response.json();
+  return { ok: true, version: body.version ?? 0 };
 }

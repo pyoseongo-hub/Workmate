@@ -71,17 +71,22 @@ export default function WorkLog() {
 
   const remove = async (log: LogRow) => {
     if (!(await ask(`${log.workDate} 근무일지를 지울까요?`))) return;
-    setLogs(logs.filter((item) => item.id !== log.id));
+    setLogs((prev) => prev.filter((item) => item.id !== log.id));
     notify(`${log.workDate} 근무일지를 지웠어요`);
   };
 
+  // 목록을 함수로 고칩니다 — 그 사이 남이 쓴 일지를 지우지 않으려고.
   const save = (form: Omit<LogRow, "id">) => {
     if (editing === "new") {
-      const nextId = Math.max(0, ...logs.map((log) => log.id)) + 1;
-      setLogs([...logs, { ...form, id: nextId }]);
+      setLogs((prev) => [
+        ...prev,
+        { ...form, id: Math.max(0, ...prev.map((log) => log.id)) + 1 },
+      ]);
       notify(`${form.workDate} 근무일지를 썼어요`);
     } else if (editing) {
-      setLogs(logs.map((log) => (log.id === editing.id ? { ...form, id: log.id } : log)));
+      setLogs((prev) =>
+        prev.map((log) => (log.id === editing.id ? { ...form, id: log.id } : log))
+      );
       notify(
         isPast(form.workDate)
           ? `지난 날짜(${form.workDate}) 근무일지를 고쳤어요`

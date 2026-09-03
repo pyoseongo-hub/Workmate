@@ -9,6 +9,8 @@ import {
   initStore,
   isDataKey,
   readAll,
+  readData,
+  readVersions,
   writeData,
 } from "./store";
 
@@ -53,6 +55,30 @@ app.post("/api/stores", async (req, res) => {
   }
 });
 
+/**
+ * 판 번호만 알려 줍니다. 앱이 8초마다 부르는 곳이라 가장 가벼워야 합니다.
+ *
+ * 앱은 이걸 보고 "바뀐 종류만" 따로 받아 갑니다.
+ * 전에는 8초마다 매장 자료를 통째로 내려보냈습니다 —
+ * 1년 쓴 매장이면 한 번에 471KB 였고, 바뀐 게 없어도 그랬습니다.
+ */
+app.get("/api/stores/:code/versions", async (req, res) => {
+  const code = req.params.code.toUpperCase();
+
+  try {
+    const store = await getStore(code);
+    if (!store) {
+      res.status(404).json({ error: "그런 매장 코드가 없습니다." });
+      return;
+    }
+
+    res.json({ versions: await readVersions(code) });
+  } catch (error) {
+    console.error("[api] 판 번호 읽기 실패", error);
+    res.status(500).json({ error: "자료를 읽지 못했습니다." });
+  }
+});
+
 /** 매장의 모든 자료를 한 번에 꺼냅니다. 앱이 열릴 때 부릅니다. */
 app.get("/api/stores/:code", async (req, res) => {
   const code = req.params.code.toUpperCase();
@@ -64,14 +90,45 @@ app.get("/api/stores/:code", async (req, res) => {
       return;
     }
 
-    res.json({ ...store, data: await readAll(code) });
+    const { data, versions } = await readAll(code);
+    res.json({ ...store, data, versions });
   } catch (error) {
     console.error("[api] 매장 읽기 실패", error);
     res.status(500).json({ error: "자료를 읽지 못했습니다." });
   }
 });
 
-/** 자료 한 종류를 통째로 담습니다. (근무·직원·교대·근무일지) */
+/** 자료 한 종류만 꺼냅니다. 판 번호가 바뀐 것만 받아 갈 때 씁니다. */
+app.get("/api/stores/:code/:key", async (req, res) => {
+  const code = req.params.code.toUpperCase();
+  const key = req.params.key;
+
+  if (!isDataKey(key)) {
+    res.status(400).json({ error: "그런 자료 종류가 없습니다." });
+    return;
+  }
+
+  try {
+    const store = await getStore(code);
+    if (!store) {
+      res.status(404).json({ error: "그런 매장 코드가 없습니다." });
+      return;
+    }
+
+    const { items, version } = await readData(code, key);
+    res.json({ items, version });
+  } catch (error) {
+    console.error("[api] 자료 읽기 실패", error);
+    res.status(500).json({ error: "자료를 읽지 못했습니다." });
+  }
+});
+
+/**
+ * 자료 한 종류를 통째로 담습니다. (근무·직원·교대·근무일지)
+ *
+ * baseVersion 을 함께 보내면 "그 사이에 남이 고쳤나"를 확인합니다.
+ * 고쳤으면 409 와 함께 지금 자료를 돌려줍니다 — 앱이 다시 얹어서 보냅니다.
+ */
 app.put("/api/stores/:code/:key", async (req, res) => {
   const code = req.params.code.toUpperCase();
   const key = req.params.key;
@@ -87,6 +144,9 @@ app.put("/api/stores/:code/:key", async (req, res) => {
     return;
   }
 
+  const raw = req.body?.baseVersion;
+  const baseVersion = typeof raw === "number" ? raw : undefined;
+
   try {
     const store = await getStore(code);
     if (!store) {
@@ -94,8 +154,18 @@ app.put("/api/stores/:code/:key", async (req, res) => {
       return;
     }
 
-    await writeData(code, key, items);
-    res.json({ ok: true });
+    const result = await writeData(code, key, items, baseVersion);
+
+    if (!result.ok) {
+      res.status(409).json({
+        error: "그 사이에 다른 사람이 고쳤습니다.",
+        items: result.items,
+        version: result.version,
+      });
+      return;
+    }
+
+    res.json({ ok: true, version: result.version });
   } catch (error) {
     console.error("[api] 자료 담기 실패", error);
     res.status(500).json({ error: "자료를 담지 못했습니다." });

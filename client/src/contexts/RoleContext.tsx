@@ -40,8 +40,14 @@ type RoleValue = {
   logout: () => void;
   /** 사장님이 알바생 화면으로 보기를 켜고 끕니다 */
   toggleViewAsStaff: () => void;
-  /** 직원 목록을 고칩니다 (직원 관리 화면에서 씁니다) */
-  setMembers: (next: Member[]) => void;
+  /**
+   * 직원 목록을 고칩니다 (직원 관리 화면에서 씁니다).
+   *
+   * 값 대신 **함수**로 주는 것을 권합니다 — `setMembers((prev) => ...)`.
+   * 값으로 주면 "내가 보던 목록"이 통째로 올라가서,
+   * 그 사이 다른 기기에서 넣은 직원이 지워질 수 있습니다.
+   */
+  setMembers: (next: Member[] | ((prev: Member[]) => Member[])) => void;
 };
 
 const RoleContext = createContext<RoleValue | null>(null);

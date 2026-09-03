@@ -12,16 +12,29 @@ export function useSwaps() {
   const [swaps, setSwaps, isShared] = useSharedState<SwapRow[]>("swaps", []);
   const { notify } = useNotices();
 
-  /** 새 교대를 신청합니다. 처음 상태는 "상대 확인 대기" 입니다. */
+  /**
+   * 새 교대를 신청합니다. 처음 상태는 "상대 확인 대기" 입니다.
+   *
+   * 목록을 함수로 고칩니다 — 그래야 두 사람이 거의 동시에 신청해도
+   * 나중 사람이 앞사람 것을 지우지 않습니다.
+   */
   const addSwap = (form: Omit<SwapRow, "id" | "status">) => {
-    const nextId = Math.max(0, ...swaps.map((swap) => swap.id)) + 1;
-    setSwaps([{ ...form, id: nextId, status: "pending_target" }, ...swaps]);
+    setSwaps((prev) => [
+      {
+        ...form,
+        id: Math.max(0, ...prev.map((swap) => swap.id)) + 1,
+        status: "pending_target",
+      },
+      ...prev,
+    ]);
     notify(`${form.workDate} 교대를 신청했어요 (${form.fromName} → ${form.toName})`);
   };
 
   /** 상태를 바꿉니다. 상대 확인 → 사장님 승인 → 완료 순으로 넘어갑니다. */
   const setStatus = (id: number, status: SwapStatus) => {
-    setSwaps(swaps.map((swap) => (swap.id === id ? { ...swap, status } : swap)));
+    setSwaps((prev) =>
+      prev.map((swap) => (swap.id === id ? { ...swap, status } : swap))
+    );
 
     const target = swaps.find((swap) => swap.id === id);
     if (!target) return;
@@ -38,7 +51,7 @@ export function useSwaps() {
   /** 교대 요청을 목록에서 아예 없앱니다. 잘못 신청했을 때 씁니다. */
   const removeSwap = (id: number) => {
     const target = swaps.find((swap) => swap.id === id);
-    setSwaps(swaps.filter((swap) => swap.id !== id));
+    setSwaps((prev) => prev.filter((swap) => swap.id !== id));
     if (target) notify(`${target.workDate} 교대 요청을 취소했어요`);
   };
 

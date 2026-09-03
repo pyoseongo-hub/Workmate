@@ -15,18 +15,29 @@ export function useNotices() {
   const { myName } = useRole();
   const [notices, setNotices] = useSharedState<Notice[]>("notices", []);
 
-  /** 알림을 남깁니다. */
+  /**
+   * 알림을 남깁니다.
+   *
+   * 함수로 넘기는 이유: 여러 사람이 동시에 무언가 하면 알림도 동시에 쌓입니다.
+   * "내가 보던 목록"을 통째로 올리면 그 사이 남이 남긴 알림이 지워집니다.
+   * 함수로 주면 부딪혔을 때 서버의 최신 목록 위에 다시 얹습니다.
+   */
   const notify = (text: string) => {
     if (!text || !myName) return;
 
-    const nextId = Math.max(0, ...notices.map((notice) => notice.id)) + 1;
     const at = new Date().toISOString().slice(0, 16); // "2026-09-01T14:30"
 
-    setNotices(
+    setNotices((prev) =>
       [
         // 자기가 한 일은 스스로 이미 읽은 것으로 둡니다.
-        { id: nextId, at, who: myName, text, readBy: [myName] },
-        ...notices,
+        {
+          id: Math.max(0, ...prev.map((notice) => notice.id)) + 1,
+          at,
+          who: myName,
+          text,
+          readBy: [myName],
+        },
+        ...prev,
       ].slice(0, KEEP)
     );
   };
@@ -37,8 +48,8 @@ export function useNotices() {
   /** 지금 보이는 것을 전부 읽음으로 표시합니다. */
   const markAllRead = () => {
     if (unread.length === 0) return;
-    setNotices(
-      notices.map((notice) =>
+    setNotices((prev) =>
+      prev.map((notice) =>
         notice.readBy.includes(myName)
           ? notice
           : { ...notice, readBy: [...notice.readBy, myName] }

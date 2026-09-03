@@ -44,14 +44,22 @@ export default function Staff() {
     );
   }
 
+  // 목록을 함수로 고칩니다 — 사장님이 두 기기에서 만지더라도 어긋나지 않게.
   const save = (name: string, pin: string) => {
     if (editing === "new") {
       // 새 번호는 지금 있는 번호 중 가장 큰 값 + 1
-      const nextId = Math.max(0, ...members.map((member) => member.id)) + 1;
-      setMembers([...members, { id: nextId, name, pin, role: "staff" }]);
+      setMembers((prev) => [
+        ...prev,
+        {
+          id: Math.max(0, ...prev.map((member) => member.id)) + 1,
+          name,
+          pin,
+          role: "staff",
+        },
+      ]);
     } else if (editing) {
-      setMembers(
-        members.map((member) =>
+      setMembers((prev) =>
+        prev.map((member) =>
           member.id === editing.id ? { ...member, name, pin } : member
         )
       );
@@ -61,7 +69,7 @@ export default function Staff() {
 
   const remove = async (member: Member) => {
     if (!(await ask(`${member.name} 직원을 삭제할까요?`))) return;
-    setMembers(members.filter((item) => item.id !== member.id));
+    setMembers((prev) => prev.filter((item) => item.id !== member.id));
   };
 
   /** 이름이 겹치면 누가 누군지 알 수 없습니다. 미리 막습니다. */
