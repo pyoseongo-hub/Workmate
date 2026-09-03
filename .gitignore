@@ -115,3 +115,4 @@ client/public/__manus__/version.json
 
 # 미리보기 빌드 결과 (scripts/make-preview.mjs 가 만듭니다)
 preview/
+tests/결과/
